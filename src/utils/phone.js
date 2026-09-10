@@ -27,14 +27,39 @@ export const PAGO_MOVIL_INFO = {
 };
 
 /**
- * Builds the official WhatsApp reminder link
+ * Builds the official WhatsApp reminder link with support for Trial and Prepaid cycles
  */
-export function generateWhatsAppLink({ encargado, appSuscrita, nombreNegocio, tarifaUsd, valorBcv, telefono }) {
+export function generateWhatsAppLink({ 
+  encargado, 
+  appSuscrita, 
+  nombreNegocio, 
+  tarifaUsd, 
+  valorBcv, 
+  telefono,
+  estadoCliente = 'SOLVENTE',
+  fechaFinPrueba = null,
+  diasRestantesPrueba = null
+}) {
   const normalizedPhone = normalizeVenezuelanPhone(telefono);
   const montoVes = (Number(tarifaUsd || 0) * Number(valorBcv || 0)).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const tasaFormatted = Number(valorBcv || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const app = appSuscrita || 'tu servicio';
+  const contacto = encargado || 'amigo';
 
-  const message = `Hola ${encargado || 'amigo'}, espero estés bien. Paso por aquí para recordarte la mensualidad de ${appSuscrita || 'tu servicio'} para ${nombreNegocio}. El monto de este ciclo es de ${montoVes} Bs (calculado a la tasa oficial BCV de hoy ${tasaFormatted} Bs/$).
+  let intro = '';
+  if (estadoCliente === 'EN_PRUEBA') {
+    const tiempoTexto = diasRestantesPrueba !== null 
+      ? (diasRestantesPrueba <= 0 ? 'finaliza hoy' : `finaliza en ${diasRestantesPrueba} día${diasRestantesPrueba > 1 ? 's' : ''}${fechaFinPrueba ? ` (${fechaFinPrueba})` : ''}`)
+      : (fechaFinPrueba ? `finaliza el ${fechaFinPrueba}` : 'está por finalizar');
+    intro = `Hola ${contacto}, espero estés bien. Te escribo para comentarte que tu período de prueba gratuito de ${app} para ${nombreNegocio} ${tiempoTexto}.\n\nPara continuar disfrutando del servicio sin interrupciones, el monto de tu primer mes por adelantado es de ${montoVes} Bs (calculado a la tasa oficial BCV de hoy ${tasaFormatted} Bs/$).`;
+  } else if (estadoCliente === 'PRUEBA_VENCIDA') {
+    intro = `Hola ${contacto}, espero estés bien. Tu período de prueba gratuito de ${app} para ${nombreNegocio} ya ha finalizado.\n\nPara reactivar y continuar utilizando el sistema sin interrupciones, el monto del primer mes por adelantado es de ${montoVes} Bs (calculado a la tasa oficial BCV de hoy ${tasaFormatted} Bs/$).`;
+  } else {
+    // Normal recurring prepaid renewal
+    intro = `Hola ${contacto}, espero estés bien. Paso por aquí para recordarte la renovación mensual adelantada de ${app} para ${nombreNegocio}. El monto de este ciclo es de ${montoVes} Bs (calculado a la tasa oficial BCV de hoy ${tasaFormatted} Bs/$).`;
+  }
+
+  const message = `${intro}
 
 Mis datos de Pago Móvil:
 Banco de Venezuela (${PAGO_MOVIL_INFO.bancoCodigo})

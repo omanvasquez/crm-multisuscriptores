@@ -5,8 +5,9 @@ export default function MetricsCards({ clients, bcvRate, transactions }) {
   const activeClients = clients.filter(c => c.activo !== false);
   const totalCount = activeClients.length;
   
-  const solventClients = activeClients.filter(c => c.estado_pago);
-  const delinquentClients = activeClients.filter(c => !c.estado_pago);
+  const trialClients = activeClients.filter(c => c.estado_cliente === 'EN_PRUEBA');
+  const solventClients = activeClients.filter(c => c.estado_cliente === 'SOLVENTE');
+  const delinquentClients = activeClients.filter(c => c.estado_cliente === 'MOROSO' || c.estado_cliente === 'PRUEBA_VENCIDA');
 
   // Monthly projection (sum of active clients tarifa_base_usd)
   const projectedUsd = activeClients.reduce((sum, c) => sum + (Number(c.tarifa_base_usd) || 0), 0);
@@ -43,11 +44,11 @@ export default function MetricsCards({ clients, bcvRate, transactions }) {
         </div>
         <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-400">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-          <span>En expansión comercial</span>
+          <span>{trialClients.length} en prueba gratuita</span>
         </div>
       </div>
 
-      {/* 2. Semáforo de Morosidad */}
+      {/* 2. Semáforo de Morosidad & Prueba */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estado de Cobro</span>
@@ -55,22 +56,27 @@ export default function MetricsCards({ clients, bcvRate, transactions }) {
             <AlertTriangle className="w-4 h-4" />
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-4">
-          <div className="flex items-baseline gap-1.5">
+        <div className="mt-3 flex items-center gap-3">
+          <div className="flex items-baseline gap-1">
             <span className="text-2xl sm:text-3xl font-bold text-emerald-400">{solventClients.length}</span>
-            <span className="text-[11px] font-medium text-emerald-500">Al día</span>
+            <span className="text-[10px] font-medium text-emerald-500">Al día</span>
           </div>
           <div className="h-6 w-px bg-slate-800"></div>
-          <div className="flex items-baseline gap-1.5">
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl sm:text-3xl font-bold text-purple-400">{trialClients.length}</span>
+            <span className="text-[10px] font-medium text-purple-400">Prueba</span>
+          </div>
+          <div className="h-6 w-px bg-slate-800"></div>
+          <div className="flex items-baseline gap-1">
             <span className="text-2xl sm:text-3xl font-bold text-rose-400">{delinquentClients.length}</span>
-            <span className="text-[11px] font-medium text-rose-500">Morosos</span>
+            <span className="text-[10px] font-medium text-rose-500">Cobrar</span>
           </div>
         </div>
-        <div className="mt-2 text-[11px] text-slate-400">
+        <div className="mt-2 text-[11px] text-slate-400 truncate">
           {delinquentClients.length > 0 ? (
-            <span className="text-rose-400 font-medium">⚠️ Requieren recordatorio</span>
+            <span className="text-rose-400 font-medium">⚠️ {delinquentClients.length} requieren cobro</span>
           ) : (
-            <span className="text-emerald-400 font-medium">✨ 100% al día</span>
+            <span className="text-emerald-400 font-medium">✨ Todo solvente</span>
           )}
         </div>
       </div>

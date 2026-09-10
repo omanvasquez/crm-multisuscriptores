@@ -2,7 +2,8 @@ export function exportClientsToCSV(clients, bcvRate = 0) {
   if (!clients || !clients.length) return;
 
   const headers = [
-    'ID',
+    'ID Firestore',
+    'ID Fijo App',
     'Nombre del Negocio',
     'App Suscrita',
     'Encargado',
@@ -12,26 +13,42 @@ export function exportClientsToCSV(clients, bcvRate = 0) {
     'Estado / Región',
     'Tarifa USD',
     'Tarifa Estimada Bs',
-    'Próximo Pago',
+    'Próximo Pago / Fin Prueba',
     'Último Pago',
     'Estado'
   ];
 
-  const rows = clients.map(c => [
-    `"${c.id || ''}"`,
-    `"${(c.nombre_negocio || '').replace(/"/g, '""')}"`,
-    `"${(c.app_suscrita || '').replace(/"/g, '""')}"`,
-    `"${(c.encargado || '').replace(/"/g, '""')}"`,
-    `"${(c.cedula || '').replace(/"/g, '""')}"`,
-    `"${c.telefono || ''}"`,
-    `"${(c.direccion || '').replace(/"/g, '""')}"`,
-    `"${(c.estado_region || '').replace(/"/g, '""')}"`,
-    c.tarifa_base_usd || 0,
-    (Number(c.tarifa_base_usd || 0) * Number(bcvRate || 0)).toFixed(2),
-    c.fecha_proximo_pago ? new Date(c.fecha_proximo_pago.seconds ? c.fecha_proximo_pago.seconds * 1000 : c.fecha_proximo_pago).toLocaleDateString('es-VE') : '',
-    c.fecha_ultimo_pago ? new Date(c.fecha_ultimo_pago.seconds ? c.fecha_ultimo_pago.seconds * 1000 : c.fecha_ultimo_pago).toLocaleDateString('es-VE') : '',
-    c.estado_pago ? 'Solvente' : 'Moroso'
-  ]);
+  const rows = clients.map(c => {
+    let estadoTexto = 'Solvente';
+    if (c.estado_cliente === 'EN_PRUEBA') {
+      estadoTexto = `En Prueba (${c.dias_restantes_prueba ?? 0}d restantes)`;
+    } else if (c.estado_cliente === 'PRUEBA_VENCIDA') {
+      estadoTexto = 'Prueba Vencida (Cobro 1er Mes)';
+    } else if (c.estado_cliente === 'MOROSO' || !c.estado_pago) {
+      estadoTexto = 'Moroso';
+    }
+
+    const proximaFecha = c.estado_cliente === 'EN_PRUEBA' && c.fecha_fin_prueba
+      ? new Date(c.fecha_fin_prueba.seconds ? c.fecha_fin_prueba.seconds * 1000 : c.fecha_fin_prueba).toLocaleDateString('es-VE')
+      : (c.fecha_proximo_pago ? new Date(c.fecha_proximo_pago.seconds ? c.fecha_proximo_pago.seconds * 1000 : c.fecha_proximo_pago).toLocaleDateString('es-VE') : '');
+
+    return [
+      `"${c.id || ''}"`,
+      `"${(c.id_externo || '').replace(/"/g, '""')}"`,
+      `"${(c.nombre_negocio || '').replace(/"/g, '""')}"`,
+      `"${(c.app_suscrita || '').replace(/"/g, '""')}"`,
+      `"${(c.encargado || '').replace(/"/g, '""')}"`,
+      `"${(c.cedula || '').replace(/"/g, '""')}"`,
+      `"${c.telefono || ''}"`,
+      `"${(c.direccion || '').replace(/"/g, '""')}"`,
+      `"${(c.estado_region || '').replace(/"/g, '""')}"`,
+      c.tarifa_base_usd || 0,
+      (Number(c.tarifa_base_usd || 0) * Number(bcvRate || 0)).toFixed(2),
+      proximaFecha,
+      c.fecha_ultimo_pago ? new Date(c.fecha_ultimo_pago.seconds ? c.fecha_ultimo_pago.seconds * 1000 : c.fecha_ultimo_pago).toLocaleDateString('es-VE') : '',
+      `"${estadoTexto}"`
+    ];
+  });
 
   const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

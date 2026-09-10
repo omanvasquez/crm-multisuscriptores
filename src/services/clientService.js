@@ -18,7 +18,7 @@ const CLIENTS_COLLECTION = 'clientes';
 const TRANSACTIONS_COLLECTION = 'transacciones';
 
 /**
- * Subscribes to all active clients in real time
+ * Subscribes to all active clients in real time and calculates dynamic statuses
  */
 export function subscribeToClients(onSuccess, onError) {
   const q = query(
@@ -30,23 +30,71 @@ export function subscribeToClients(onSuccess, onError) {
     const clients = snapshot.docs.map(d => {
       const data = d.data();
       const now = new Date();
-      
-      // Calculate solvency dynamically based on next due date
-      let isSolvent = data.estado_pago ?? true;
-      if (data.fecha_proximo_pago) {
-        const dueDate = data.fecha_proximo_pago.toDate ? data.fecha_proximo_pago.toDate() : new Date(data.fecha_proximo_pago);
-        // If due date has passed the current day (at midnight), consider delinquent
-        const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const dueMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-        if (dueMidnight < todayMidnight) {
-          isSolvent = false;
+      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      let estado_cliente = 'SOLVENTE'; // 'EN_PRUEBA' | 'PRUEBA_VENCIDA' | 'SOLVENTE' | 'MOROSO'
+      let isSolvent = true;
+      let dias_restantes_prueba = null;
+      let dias_diferencia = 0;
+
+      const isTrial = Boolean(data.en_periodo_prueba);
+
+      if (isTrial && data.fecha_fin_prueba) {
+        const trialEndDate = data.fecha_fin_prueba.toDate 
+          ? data.fecha_fin_prueba.toDate() 
+          : new Date(data.fecha_fin_prueba.seconds ? data.fecha_fin_prueba.seconds * 1000 : data.fecha_fin_prueba);
+        const trialEndMidnight = new Date(trialEndDate.getFullYear(), trialEndDate.getMonth(), trialEndDate.getDate());
+        
+        const diffTime = trialEndMidnight - todayMidnight;
+        dias_restantes_prueba = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (dias_restantes_prueba >= 0) {
+          estado_cliente = 'EN_PRUEBA';
+          isSolvent = true;
+        } else {
+          // Trial has expired
+          if (!data.fecha_ultimo_pago) {
+            estado_cliente = 'PRUEBA_VENCIDA';
+            isSolvent = false;
+          } else {
+            // Already made a payment, check regular cut-off
+            checkRegularPayment();
+          }
+        }
+      } else {
+        checkRegularPayment();
+      }
+
+      function checkRegularPayment() {
+        if (data.fecha_proximo_pago) {
+          const dueDate = data.fecha_proximo_pago.toDate 
+            ? data.fecha_proximo_pago.toDate() 
+            : new Date(data.fecha_proximo_pago.seconds ? data.fecha_proximo_pago.seconds * 1000 : data.fecha_proximo_pago);
+          const dueMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+          const diffTime = dueMidnight - todayMidnight;
+          dias_diferencia = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          if (dueMidnight < todayMidnight) {
+            isSolvent = false;
+            estado_cliente = 'MOROSO';
+          } else {
+            isSolvent = true;
+            estado_cliente = 'SOLVENTE';
+          }
+        } else {
+          isSolvent = data.estado_pago ?? true;
+          estado_cliente = isSolvent ? 'SOLVENTE' : 'MOROSO';
         }
       }
 
       return {
         id: d.id,
         ...data,
-        estado_pago: isSolvent
+        id_externo: data.id_externo || '',
+        estado_pago: isSolvent,
+        estado_cliente,
+        dias_restantes_prueba,
+        dias_diferencia
       };
     });
 
@@ -62,16 +110,45 @@ export function subscribeToClients(onSuccess, onError) {
 }
 
 /**
- * Creates a new client
+ * Creates a new client with prepaid and trial logic
  */
 export async function createClient(data) {
   const normalizedPhone = normalizeVenezuelanPhone(data.telefono);
-  
-  // Date parsing
   const startDate = data.fecha_inicio_contrato ? new Date(data.fecha_inicio_contrato) : new Date();
-  const nextPaymentDate = data.fecha_proximo_pago ? new Date(data.fecha_proximo_pago) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  const isTrial = Boolean(data.en_periodo_prueba);
+  let trialEndDate = null;
+  let nextPaymentDate = null;
+  let lastPaymentDate = null;
+  let isSolvent = true;
+
+  if (isTrial) {
+    const days = Number(data.dias_prueba) || 14;
+    trialEndDate = data.fecha_fin_prueba 
+      ? new Date(data.fecha_fin_prueba) 
+      : new Date(startDate.getTime() + days * 24 * 60 * 60 * 1000);
+    // First payment is due when trial ends
+    nextPaymentDate = trialEndDate;
+    isSolvent = true;
+  } else {
+    if (data.primer_pago_inmediato) {
+      lastPaymentDate = Timestamp.fromDate(startDate);
+      const nextDate = new Date(startDate);
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      nextPaymentDate = nextDate;
+      isSolvent = true;
+    } else {
+      // In prepaid, if first payment is not recorded upfront, first payment is due today
+      nextPaymentDate = data.fecha_proximo_pago ? new Date(data.fecha_proximo_pago) : startDate;
+      const now = new Date();
+      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const nextMidnight = new Date(nextPaymentDate.getFullYear(), nextPaymentDate.getMonth(), nextPaymentDate.getDate());
+      isSolvent = nextMidnight >= todayMidnight;
+    }
+  }
 
   const newClient = {
+    id_externo: data.id_externo?.trim() || '',
     nombre_negocio: data.nombre_negocio?.trim() || '',
     app_suscrita: data.app_suscrita?.trim() || 'General',
     encargado: data.encargado?.trim() || '',
@@ -80,10 +157,13 @@ export async function createClient(data) {
     direccion: data.direccion?.trim() || '',
     estado_region: data.estado_region?.trim() || 'Cojedes',
     tarifa_base_usd: Number(data.tarifa_base_usd) || 0,
+    en_periodo_prueba: isTrial,
+    dias_prueba: isTrial ? (Number(data.dias_prueba) || 14) : 0,
+    fecha_fin_prueba: trialEndDate ? Timestamp.fromDate(trialEndDate) : null,
     fecha_inicio_contrato: Timestamp.fromDate(startDate),
     fecha_proximo_pago: Timestamp.fromDate(nextPaymentDate),
-    fecha_ultimo_pago: null,
-    estado_pago: true,
+    fecha_ultimo_pago: lastPaymentDate,
+    estado_pago: isSolvent,
     activo: true,
     creado_el: serverTimestamp()
   };
@@ -98,6 +178,7 @@ export async function updateClient(clientId, data) {
   const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
   
   const updateData = {
+    id_externo: data.id_externo?.trim() || '',
     nombre_negocio: data.nombre_negocio?.trim() || '',
     app_suscrita: data.app_suscrita?.trim() || 'General',
     encargado: data.encargado?.trim() || '',
@@ -106,8 +187,16 @@ export async function updateClient(clientId, data) {
     direccion: data.direccion?.trim() || '',
     estado_region: data.estado_region?.trim() || '',
     tarifa_base_usd: Number(data.tarifa_base_usd) || 0,
+    en_periodo_prueba: Boolean(data.en_periodo_prueba),
+    dias_prueba: Number(data.dias_prueba) || 0,
     actualizado_el: serverTimestamp()
   };
+
+  if (data.fecha_fin_prueba) {
+    updateData.fecha_fin_prueba = Timestamp.fromDate(new Date(data.fecha_fin_prueba));
+  } else if (!data.en_periodo_prueba) {
+    updateData.fecha_fin_prueba = null;
+  }
 
   if (data.fecha_inicio_contrato) {
     updateData.fecha_inicio_contrato = Timestamp.fromDate(new Date(data.fecha_inicio_contrato));
@@ -131,7 +220,7 @@ export async function softDeleteClient(clientId) {
 }
 
 /**
- * Records a payment in 'transacciones' and advances next payment date by 1 month
+ * Records a payment in 'transacciones' and advances next payment date by 1 month (prepaid)
  */
 export async function registerClientPayment({
   clientId,
@@ -162,21 +251,22 @@ export async function registerClientPayment({
   let baseDate = currentDueDate ? (currentDueDate.toDate ? currentDueDate.toDate() : new Date(currentDueDate)) : new Date();
   const now = new Date();
   
-  // If current due date was already in the past, add 30 days from today
+  // If current due date was already in the past, add 1 month from today
   if (baseDate < now) {
     baseDate = new Date();
   }
   
-  // Add 1 month (safely handle month boundaries)
+  // Add 1 month for upcoming prepaid cycle
   const nextDate = new Date(baseDate);
   nextDate.setMonth(nextDate.getMonth() + 1);
 
-  // 3. Update client record
+  // 3. Update client record (also completes trial if client was in trial)
   const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
   await updateDoc(clientRef, {
     fecha_ultimo_pago: Timestamp.now(),
     fecha_proximo_pago: Timestamp.fromDate(nextDate),
     estado_pago: true,
+    en_periodo_prueba: false, // Transition out of trial to active paid contract
     actualizado_el: serverTimestamp()
   });
 

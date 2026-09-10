@@ -103,14 +103,15 @@ export default function App() {
   // Filter clients based on search query, selected app, and payment status
   const filteredClients = useMemo(() => {
     return clients.filter(c => {
-      // Search text
+      // Search text (supports ID, name, contact, CI, phone)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchName = c.nombre_negocio?.toLowerCase().includes(q);
         const matchEncargado = c.encargado?.toLowerCase().includes(q);
         const matchCedula = c.cedula?.toLowerCase().includes(q);
         const matchTel = c.telefono?.includes(q);
-        if (!matchName && !matchEncargado && !matchCedula && !matchTel) {
+        const matchId = c.id_externo?.toLowerCase().includes(q) || c.id?.toLowerCase().includes(q);
+        if (!matchName && !matchEncargado && !matchCedula && !matchTel && !matchId) {
           return false;
         }
       }
@@ -120,9 +121,11 @@ export default function App() {
         return false;
       }
 
-      // Solvency status
-      if (statusFilter === 'SOLVENT' && !c.estado_pago) return false;
-      if (statusFilter === 'DELINQUENT' && c.estado_pago) return false;
+      // Solvency & Trial status
+      const estado = c.estado_cliente || (c.estado_pago ? 'SOLVENTE' : 'MOROSO');
+      if (statusFilter === 'SOLVENT' && estado !== 'SOLVENTE') return false;
+      if (statusFilter === 'TRIAL' && estado !== 'EN_PRUEBA') return false;
+      if (statusFilter === 'DELINQUENT' && estado !== 'MOROSO' && estado !== 'PRUEBA_VENCIDA') return false;
 
       return true;
     });
@@ -201,7 +204,7 @@ export default function App() {
               <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
               <input
                 type="text"
-                placeholder="Buscar por negocio, encargado, cédula o teléfono..."
+                placeholder="Buscar por negocio, ID de app, encargado, cédula o teléfono..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-950/70 border border-slate-800 text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
@@ -238,17 +241,6 @@ export default function App() {
                   Todos
                 </button>
                 <button
-                  onClick={() => setStatusFilter('DELINQUENT')}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-                    statusFilter === 'DELINQUENT' 
-                      ? 'bg-rose-500/20 text-rose-300 font-semibold' 
-                      : 'text-slate-400 hover:text-rose-400'
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                  Morosos
-                </button>
-                <button
                   onClick={() => setStatusFilter('SOLVENT')}
                   className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
                     statusFilter === 'SOLVENT' 
@@ -258,6 +250,28 @@ export default function App() {
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                   Solventes
+                </button>
+                <button
+                  onClick={() => setStatusFilter('TRIAL')}
+                  className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                    statusFilter === 'TRIAL' 
+                      ? 'bg-purple-500/20 text-purple-300 font-semibold' 
+                      : 'text-slate-400 hover:text-purple-400'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                  En Prueba
+                </button>
+                <button
+                  onClick={() => setStatusFilter('DELINQUENT')}
+                  className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                    statusFilter === 'DELINQUENT' 
+                      ? 'bg-rose-500/20 text-rose-300 font-semibold' 
+                      : 'text-slate-400 hover:text-rose-400'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                  Morosos
                 </button>
               </div>
 

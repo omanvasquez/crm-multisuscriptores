@@ -63,10 +63,11 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, client, bcvRa
           </div>
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight">
-              Registrar Cobranza
+              {client.en_periodo_prueba || client.estado_cliente === 'PRUEBA_VENCIDA' ? 'Cobro 1er Mes (Post-Prueba)' : 'Registrar Cobranza Adelantada'}
             </h2>
             <p className="text-xs text-slate-400">
               {client.nombre_negocio} ({client.app_suscrita || 'General'})
+              {client.id_externo ? ` • ID: ${client.id_externo}` : ''}
             </p>
           </div>
         </div>
@@ -128,15 +129,19 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, client, bcvRa
         <div className="mt-5 p-3 rounded-xl bg-slate-800/40 border border-slate-800 flex items-center justify-between text-xs">
           <div className="flex items-center gap-1.5 text-slate-400">
             <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>Nuevo corte:</span>
+            <span>
+              {client.en_periodo_prueba || client.estado_cliente === 'PRUEBA_VENCIDA' ? 'Activa servicio hasta:' : 'Renueva servicio hasta:'}
+            </span>
           </div>
           <div className="flex items-center gap-2 font-semibold">
-            <span className="text-slate-500 line-through">
-              {currentDueDate ? currentDueDate.toLocaleDateString('es-VE') : 'N/A'}
-            </span>
+            {currentDueDate && (
+              <span className="text-slate-500 line-through">
+                {currentDueDate.toLocaleDateString('es-VE')}
+              </span>
+            )}
             <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-emerald-400">
-              {nextDate.toLocaleDateString('es-VE')} (+1 mes)
+              {nextDate.toLocaleDateString('es-VE')} (+1 mes adelantado)
             </span>
           </div>
         </div>
