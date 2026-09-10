@@ -47,7 +47,13 @@ export function generateWhatsAppLink({
   const contacto = encargado || 'amigo';
 
   let intro = '';
-  if (estadoCliente === 'EN_PRUEBA') {
+  if (estadoCliente === 'SUSPENDIDO') {
+    return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(`Hola ${contacto}, espero estés bien. Te contacto de ${app} para ${nombreNegocio}.
+
+Queríamos consultarte cómo te fue con el sistema y si te gustaría reactivar tu acceso. Tenemos planes y promociones especiales disponibles para tu comercio si deseas volver a utilizar la plataforma.
+
+¡Quedo a tu total orden si deseas reactivarlo! 👍🏻`)}`;
+  } else if (estadoCliente === 'EN_PRUEBA') {
     const tiempoTexto = diasRestantesPrueba !== null 
       ? (diasRestantesPrueba <= 0 ? 'finaliza hoy' : `finaliza en ${diasRestantesPrueba} día${diasRestantesPrueba > 1 ? 's' : ''}${fechaFinPrueba ? ` (${fechaFinPrueba})` : ''}`)
       : (fechaFinPrueba ? `finaliza el ${fechaFinPrueba}` : 'está por finalizar');

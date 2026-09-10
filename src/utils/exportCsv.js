@@ -20,7 +20,9 @@ export function exportClientsToCSV(clients, bcvRate = 0) {
 
   const rows = clients.map(c => {
     let estadoTexto = 'Solvente';
-    if (c.estado_cliente === 'EN_PRUEBA') {
+    if (c.suspendido || c.estado_cliente === 'SUSPENDIDO') {
+      estadoTexto = 'Suspendido';
+    } else if (c.estado_cliente === 'EN_PRUEBA') {
       estadoTexto = `En Prueba (${c.dias_restantes_prueba ?? 0}d restantes)`;
     } else if (c.estado_cliente === 'PRUEBA_VENCIDA') {
       estadoTexto = 'Prueba Vencida (Cobro 1er Mes)';

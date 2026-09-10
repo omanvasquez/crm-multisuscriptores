@@ -2,7 +2,8 @@ import React from 'react';
 import { Users, AlertTriangle, CheckCircle2, DollarSign, Wallet } from 'lucide-react';
 
 export default function MetricsCards({ clients, bcvRate, transactions }) {
-  const activeClients = clients.filter(c => c.activo !== false);
+  const activeClients = clients.filter(c => c.activo !== false && !c.suspendido);
+  const suspendedClients = clients.filter(c => c.activo !== false && c.suspendido);
   const totalCount = activeClients.length;
   
   const trialClients = activeClients.filter(c => c.estado_cliente === 'EN_PRUEBA');
@@ -44,7 +45,7 @@ export default function MetricsCards({ clients, bcvRate, transactions }) {
         </div>
         <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-400">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-          <span>{trialClients.length} en prueba gratuita</span>
+          <span>{trialClients.length} en prueba {suspendedClients.length > 0 ? `• ${suspendedClients.length} suspendidos` : ''}</span>
         </div>
       </div>
 
@@ -74,9 +75,9 @@ export default function MetricsCards({ clients, bcvRate, transactions }) {
         </div>
         <div className="mt-2 text-[11px] text-slate-400 truncate">
           {delinquentClients.length > 0 ? (
-            <span className="text-rose-400 font-medium">⚠️ {delinquentClients.length} requieren cobro</span>
+            <span className="text-rose-400 font-medium">⚠️ {delinquentClients.length} morosos activos</span>
           ) : (
-            <span className="text-emerald-400 font-medium">✨ Todo solvente</span>
+            <span className="text-emerald-400 font-medium">✨ Clientes activos al día</span>
           )}
         </div>
       </div>

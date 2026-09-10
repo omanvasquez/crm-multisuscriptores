@@ -31,6 +31,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
     fecha_inicio_contrato: new Date().toISOString().slice(0, 10),
     fecha_proximo_pago: new Date().toISOString().slice(0, 10),
     primer_pago_inmediato: true,
+    suspendido: false,
   });
 
   const [saving, setSaving] = useState(false);
@@ -72,6 +73,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
         fecha_inicio_contrato: startDate,
         fecha_proximo_pago: formatDate(clientToEdit.fecha_proximo_pago) || startDate,
         primer_pago_inmediato: Boolean(clientToEdit.fecha_ultimo_pago),
+        suspendido: Boolean(clientToEdit.suspendido),
       });
     } else {
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -335,7 +337,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Fecha de Registro / Inicio
+                {formData.en_periodo_prueba ? 'Fecha de Inicio de la Prueba' : 'Fecha de Inicio del Contrato'}
               </label>
               <input
                 type="date"
@@ -443,6 +445,23 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
               )
             )}
           </div>
+
+          {/* Row 8: Suspension State (if editing) */}
+          {clientToEdit && (
+            <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none text-xs">
+                <input
+                  type="checkbox"
+                  checked={formData.suspendido}
+                  onChange={(e) => setFormData({ ...formData, suspendido: e.target.checked })}
+                  className="w-4 h-4 rounded text-rose-600 bg-slate-900 border-slate-700 focus:ring-rose-500"
+                />
+                <span className={formData.suspendido ? 'font-semibold text-rose-400' : 'text-slate-300'}>
+                  Marcar servicio como <strong>Suspendido</strong> (acceso pausado, se mueve a pestaña Suspendidos)
+                </span>
+              </label>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="mt-8 pt-4 border-t border-slate-800 flex items-center justify-end gap-3">

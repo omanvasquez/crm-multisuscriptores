@@ -32,14 +32,18 @@ export function subscribeToClients(onSuccess, onError) {
       const now = new Date();
       const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      let estado_cliente = 'SOLVENTE'; // 'EN_PRUEBA' | 'PRUEBA_VENCIDA' | 'SOLVENTE' | 'MOROSO'
+      let estado_cliente = 'SOLVENTE'; // 'EN_PRUEBA' | 'PRUEBA_VENCIDA' | 'SOLVENTE' | 'MOROSO' | 'SUSPENDIDO'
       let isSolvent = true;
       let dias_restantes_prueba = null;
       let dias_diferencia = 0;
 
+      const isSuspended = Boolean(data.suspendido);
       const isTrial = Boolean(data.en_periodo_prueba);
 
-      if (isTrial && data.fecha_fin_prueba) {
+      if (isSuspended) {
+        estado_cliente = 'SUSPENDIDO';
+        isSolvent = false;
+      } else if (isTrial && data.fecha_fin_prueba) {
         const trialEndDate = data.fecha_fin_prueba.toDate 
           ? data.fecha_fin_prueba.toDate() 
           : new Date(data.fecha_fin_prueba.seconds ? data.fecha_fin_prueba.seconds * 1000 : data.fecha_fin_prueba);
@@ -91,6 +95,7 @@ export function subscribeToClients(onSuccess, onError) {
         id: d.id,
         ...data,
         id_externo: data.id_externo || '',
+        suspendido: isSuspended,
         estado_pago: isSolvent,
         estado_cliente,
         dias_restantes_prueba,
@@ -164,6 +169,7 @@ export async function createClient(data) {
     fecha_proximo_pago: Timestamp.fromDate(nextPaymentDate),
     fecha_ultimo_pago: lastPaymentDate,
     estado_pago: isSolvent,
+    suspendido: Boolean(data.suspendido) || false,
     activo: true,
     creado_el: serverTimestamp()
   };
@@ -192,6 +198,10 @@ export async function updateClient(clientId, data) {
     actualizado_el: serverTimestamp()
   };
 
+  if (data.suspendido !== undefined) {
+    updateData.suspendido = Boolean(data.suspendido);
+  }
+
   if (data.fecha_fin_prueba) {
     updateData.fecha_fin_prueba = Timestamp.fromDate(new Date(data.fecha_fin_prueba));
   } else if (!data.en_periodo_prueba) {
@@ -206,6 +216,17 @@ export async function updateClient(clientId, data) {
   }
 
   return await updateDoc(clientRef, updateData);
+}
+
+/**
+ * Toggles a client's suspended service state
+ */
+export async function toggleSuspendClient(clientId, suspendido) {
+  const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
+  return await updateDoc(clientRef, {
+    suspendido: Boolean(suspendido),
+    actualizado_el: serverTimestamp()
+  });
 }
 
 /**
@@ -260,13 +281,14 @@ export async function registerClientPayment({
   const nextDate = new Date(baseDate);
   nextDate.setMonth(nextDate.getMonth() + 1);
 
-  // 3. Update client record (also completes trial if client was in trial)
+  // 3. Update client record (completes trial if in trial, reactivates if suspended)
   const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
   await updateDoc(clientRef, {
     fecha_ultimo_pago: Timestamp.now(),
     fecha_proximo_pago: Timestamp.fromDate(nextDate),
     estado_pago: true,
     en_periodo_prueba: false, // Transition out of trial to active paid contract
+    suspendido: false, // Auto-reactivate on payment
     actualizado_el: serverTimestamp()
   });
 

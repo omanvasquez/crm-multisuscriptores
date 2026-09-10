@@ -16,7 +16,8 @@ import {
   updateClient, 
   softDeleteClient, 
   registerClientPayment, 
-  subscribeToTransactions 
+  subscribeToTransactions,
+  toggleSuspendClient
 } from './services/clientService';
 import { getBcvRate } from './services/bcvService';
 import { exportClientsToCSV } from './utils/exportCsv';
@@ -100,6 +101,11 @@ export default function App() {
     return Array.from(appsSet);
   }, [clients]);
 
+  // Count of suspended clients
+  const suspendedCount = useMemo(() => {
+    return clients.filter(c => c.suspendido).length;
+  }, [clients]);
+
   // Filter clients based on search query, selected app, and payment status
   const filteredClients = useMemo(() => {
     return clients.filter(c => {
@@ -121,7 +127,17 @@ export default function App() {
         return false;
       }
 
-      // Solvency & Trial status
+      // Suspension & Solvency filtering
+      const isSuspended = Boolean(c.suspendido);
+      if (statusFilter === 'SUSPENDED') {
+        return isSuspended;
+      }
+      
+      // If NOT on SUSPENDED tab, hide suspended clients so they do not clutter active lists
+      if (isSuspended) {
+        return false;
+      }
+
       const estado = c.estado_cliente || (c.estado_pago ? 'SOLVENTE' : 'MOROSO');
       if (statusFilter === 'SOLVENT' && estado !== 'SOLVENTE') return false;
       if (statusFilter === 'TRIAL' && estado !== 'EN_PRUEBA') return false;
@@ -137,6 +153,14 @@ export default function App() {
       await updateClient(clientId, formData);
     } else {
       await createClient(formData);
+    }
+  };
+
+  const handleToggleSuspend = async (client) => {
+    try {
+      await toggleSuspendClient(client.id, !client.suspendido);
+    } catch (err) {
+      console.error('Error toggling suspension:', err);
     }
   };
 
@@ -273,6 +297,17 @@ export default function App() {
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                   Morosos
                 </button>
+                <button
+                  onClick={() => setStatusFilter('SUSPENDED')}
+                  className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                    statusFilter === 'SUSPENDED' 
+                      ? 'bg-slate-700 text-slate-100 font-semibold' 
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                  Suspendidos {suspendedCount > 0 ? `(${suspendedCount})` : ''}
+                </button>
               </div>
 
             </div>
@@ -322,6 +357,7 @@ export default function App() {
                   setIsClientModalOpen(true);
                 }}
                 onDeleteClient={(c) => setClientToDelete(c)}
+                onToggleSuspend={handleToggleSuspend}
               />
             ))}
           </div>

@@ -15,7 +15,9 @@ import {
   Check,
   Sparkles,
   Clock,
-  KeyRound
+  KeyRound,
+  PauseCircle,
+  PlayCircle
 } from 'lucide-react';
 import { generateWhatsAppLink } from '../utils/phone';
 
@@ -39,7 +41,8 @@ export default function ClientCard({
   bcvRate, 
   onRegisterPayment, 
   onEditClient, 
-  onDeleteClient 
+  onDeleteClient,
+  onToggleSuspend
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
@@ -48,10 +51,11 @@ export default function ClientCard({
   const montoVes = tarifaUsd * (Number(bcvRate) || 0);
 
   // Status calculations
-  const estadoCliente = client.estado_cliente || (client.estado_pago ? 'SOLVENTE' : 'MOROSO');
+  const isSuspended = Boolean(client.suspendido);
+  const estadoCliente = isSuspended ? 'SUSPENDIDO' : (client.estado_cliente || (client.estado_pago ? 'SOLVENTE' : 'MOROSO'));
   const isTrial = estadoCliente === 'EN_PRUEBA';
   const isTrialExpired = estadoCliente === 'PRUEBA_VENCIDA';
-  const isOverdue = estadoCliente === 'MOROSO' || isTrialExpired;
+  const isOverdue = (estadoCliente === 'MOROSO' || isTrialExpired) && !isSuspended;
 
   // Dates
   const dueDate = client.fecha_proximo_pago?.toDate 
@@ -89,6 +93,7 @@ export default function ClientCard({
 
   // Top accent bar color
   const getStripColor = () => {
+    if (isSuspended) return 'bg-slate-500';
     if (isTrial) return 'bg-purple-500';
     if (isTrialExpired) return 'bg-amber-500';
     if (estadoCliente === 'MOROSO') return 'bg-rose-500';
@@ -97,13 +102,15 @@ export default function ClientCard({
 
   return (
     <div className={`rounded-2xl border transition-all duration-200 relative group overflow-hidden ${
-      isOverdue 
-        ? isTrialExpired 
-          ? 'bg-amber-950/15 border-amber-500/40 hover:border-amber-500/60 shadow-lg shadow-amber-950/20'
-          : 'bg-rose-950/20 border-rose-500/40 hover:border-rose-500/60 shadow-lg shadow-rose-950/30' 
-        : isTrial
-          ? 'bg-purple-950/15 border-purple-500/30 hover:border-purple-500/50 shadow-md'
-          : 'bg-slate-900/70 border-slate-800 hover:border-slate-700 shadow-md'
+      isSuspended
+        ? 'bg-slate-900/40 border-slate-800/80 opacity-80 hover:opacity-100 shadow-md'
+        : isOverdue 
+          ? isTrialExpired 
+            ? 'bg-amber-950/15 border-amber-500/40 hover:border-amber-500/60 shadow-lg shadow-amber-950/20'
+            : 'bg-rose-950/20 border-rose-500/40 hover:border-rose-500/60 shadow-lg shadow-rose-950/30' 
+          : isTrial
+            ? 'bg-purple-950/15 border-purple-500/30 hover:border-purple-500/50 shadow-md'
+            : 'bg-slate-900/70 border-slate-800 hover:border-slate-700 shadow-md'
     }`}>
       
       {/* Top Accent Strip */}
@@ -122,7 +129,12 @@ export default function ClientCard({
               </span>
               
               {/* Dynamic Status Badge */}
-              {isTrial ? (
+              {isSuspended ? (
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1">
+                  <PauseCircle className="w-3 h-3 text-slate-400" />
+                  Suspendido
+                </span>
+              ) : isTrial ? (
                 <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-purple-400" />
                   En Prueba ({client.dias_restantes_prueba !== null ? `${client.dias_restantes_prueba}d` : 'Activa'})
@@ -190,13 +202,31 @@ export default function ClientCard({
                   className="fixed inset-0 z-20" 
                   onClick={() => setMenuOpen(false)}
                 />
-                <div className="absolute right-0 top-8 z-30 w-36 rounded-xl bg-slate-800 border border-slate-700 shadow-xl py-1 text-xs">
+                <div className="absolute right-0 top-8 z-30 w-44 rounded-xl bg-slate-800 border border-slate-700 shadow-xl py-1 text-xs">
                   <button
                     onClick={() => { setMenuOpen(false); onEditClient(client); }}
                     className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-700/80 flex items-center gap-2"
                   >
                     <Edit className="w-3.5 h-3.5 text-blue-400" />
                     Editar
+                  </button>
+                  <button
+                    onClick={() => { setMenuOpen(false); onToggleSuspend && onToggleSuspend(client); }}
+                    className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
+                      isSuspended ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-amber-400 hover:bg-amber-500/10'
+                    }`}
+                  >
+                    {isSuspended ? (
+                      <>
+                        <PlayCircle className="w-3.5 h-3.5" />
+                        Reactivar Servicio
+                      </>
+                    ) : (
+                      <>
+                        <PauseCircle className="w-3.5 h-3.5" />
+                        Suspender Servicio
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => { setMenuOpen(false); onDeleteClient(client); }}
@@ -235,7 +265,11 @@ export default function ClientCard({
 
           <div className="flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            {isTrial ? (
+            {isSuspended ? (
+              <span className="text-slate-400">
+                Estado: <strong className="text-slate-300">Servicio suspendido en app</strong>
+              </span>
+            ) : isTrial ? (
               <span>
                 Prueba hasta: <strong className="text-purple-300">
                   {trialEndDate ? trialEndDate.toLocaleDateString('es-VE') : 'En curso'}
@@ -284,30 +318,34 @@ export default function ClientCard({
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            title="Enviar recordatorio por WhatsApp"
+            title={isSuspended ? "Recontactar cliente para reactivación u oferta" : "Enviar recordatorio por WhatsApp"}
             className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-semibold text-xs transition-all active:scale-95 ${
-              isOverdue
-                ? isTrialExpired
-                  ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-900/30 ring-2 ring-amber-500/50'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/30 ring-2 ring-emerald-500/50'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+              isSuspended
+                ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                : isOverdue
+                  ? isTrialExpired
+                    ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-900/30 ring-2 ring-amber-500/50'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/30 ring-2 ring-emerald-500/50'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
             }`}
           >
             <MessageCircle className="w-4 h-4" />
-            <span>WhatsApp</span>
+            <span>{isSuspended ? 'Recontactar' : 'WhatsApp'}</span>
           </a>
 
           {/* Register Payment Button */}
           <button
             onClick={() => onRegisterPayment(client)}
             className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-semibold text-xs shadow-md transition-all active:scale-95 text-white ${
-              isTrialExpired 
-                ? 'bg-gradient-to-r from-amber-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 shadow-amber-900/20'
-                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-900/20'
+              isSuspended
+                ? 'bg-gradient-to-r from-slate-700 to-emerald-700 hover:from-slate-600 hover:to-emerald-600 shadow-slate-900/20'
+                : isTrialExpired 
+                  ? 'bg-gradient-to-r from-amber-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 shadow-amber-900/20'
+                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-900/20'
             }`}
           >
             <CreditCard className="w-4 h-4" />
-            <span>{isTrialExpired ? 'Cobrar 1er Mes' : 'Cobrar'}</span>
+            <span>{isSuspended ? 'Cobrar / Reactivar' : isTrialExpired ? 'Cobrar 1er Mes' : 'Cobrar'}</span>
           </button>
 
         </div>
