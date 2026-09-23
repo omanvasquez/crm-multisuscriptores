@@ -40,21 +40,21 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-6">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400 flex items-center justify-center mx-auto mb-6">
               <AlertTriangle className="w-8 h-8" />
             </div>
             
-            <h2 className="text-xl font-bold text-white mb-2">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
               Algo salió mal al cargar el CRM
             </h2>
-            <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
               Puede deberse a una versión anterior almacenada en la caché de tu teléfono o una interrupción temporal de conexión.
             </p>
 
             {this.state.error?.message && (
-              <div className="p-3 mb-6 rounded-xl bg-slate-950 border border-slate-800/80 text-rose-400 font-mono text-[11px] text-left break-words max-h-28 overflow-y-auto">
+              <div className="p-3 mb-6 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 text-rose-600 dark:text-rose-400 font-mono text-[11px] text-left break-words max-h-28 overflow-y-auto">
                 {this.state.error.message}
               </div>
             )}
@@ -70,7 +70,7 @@ export default class ErrorBoundary extends React.Component {
 
               <button
                 onClick={this.handleClearCacheAndReload}
-                className="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-xs transition-colors flex items-center justify-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Limpiar caché y reiniciar</span>

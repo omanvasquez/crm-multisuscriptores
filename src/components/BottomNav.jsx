@@ -6,8 +6,10 @@ import {
   History, 
   TrendingUp, 
   Settings,
-  PlusCircle
+  Sun,
+  Moon
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import { triggerHaptic } from '../utils/haptics';
 
 export default function BottomNav({
@@ -19,8 +21,10 @@ export default function BottomNav({
   onOpenBcv,
   onOpenSettings
 }) {
+  const { isDark, toggleTheme } = useTheme();
+
   return (
-    <nav className="fixed bottom-0 inset-x-0 sm:hidden z-30 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-2 py-1.5 flex items-center justify-around shadow-2xl safe-area-pb">
+    <nav className="fixed bottom-0 inset-x-0 sm:hidden z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around shadow-2xl safe-area-pb transition-colors duration-150">
       
       {/* 1. Todos los Clientes */}
       <button
@@ -29,10 +33,10 @@ export default function BottomNav({
           onSelectFilter('ALL');
           triggerHaptic('light');
         }}
-        className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors ${
+        className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-colors ${
           statusFilter === 'ALL'
-            ? 'text-emerald-400 font-bold'
-            : 'text-slate-400 hover:text-slate-200'
+            ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
         }`}
       >
         <Building2 className="w-4 h-4" />
@@ -46,10 +50,10 @@ export default function BottomNav({
           onSelectFilter('DELINQUENT');
           triggerHaptic('light');
         }}
-        className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl relative transition-colors ${
+        className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl relative transition-colors ${
           statusFilter === 'DELINQUENT'
-            ? 'text-rose-400 font-bold'
-            : 'text-slate-400 hover:text-slate-200'
+            ? 'text-rose-600 dark:text-rose-400 font-bold'
+            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
         }`}
       >
         <div className="relative">
@@ -70,10 +74,10 @@ export default function BottomNav({
           onSelectFilter('UPCOMING');
           triggerHaptic('light');
         }}
-        className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl relative transition-colors ${
+        className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl relative transition-colors ${
           statusFilter === 'UPCOMING'
-            ? 'text-amber-400 font-bold'
-            : 'text-slate-400 hover:text-slate-200'
+            ? 'text-amber-600 dark:text-amber-400 font-bold'
+            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
         }`}
       >
         <div className="relative">
@@ -94,7 +98,7 @@ export default function BottomNav({
           onOpenTransactions();
           triggerHaptic('light');
         }}
-        className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-slate-400 hover:text-teal-400 transition-colors"
+        className="flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400 transition-colors"
       >
         <History className="w-4 h-4" />
         <span className="text-[10px]">Cobros</span>
@@ -107,20 +111,35 @@ export default function BottomNav({
           onOpenBcv();
           triggerHaptic('light');
         }}
-        className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-slate-400 hover:text-emerald-400 transition-colors"
+        className="flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors"
       >
         <TrendingUp className="w-4 h-4" />
         <span className="text-[10px]">Tasa BCV</span>
       </button>
 
-      {/* 6. Ajustes */}
+      {/* 6. Theme Toggle (Móvil) */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-slate-500 hover:text-amber-500 dark:text-slate-400 dark:hover:text-amber-400 transition-colors"
+        title={isDark ? "Cambiar a Modo Claro" : "Cambiar a Modo Oscuro"}
+      >
+        {isDark ? (
+          <Sun className="w-4 h-4 text-amber-400" />
+        ) : (
+          <Moon className="w-4 h-4 text-indigo-600" />
+        )}
+        <span className="text-[10px]">{isDark ? 'Claro' : 'Oscuro'}</span>
+      </button>
+
+      {/* 7. Ajustes */}
       <button
         type="button"
         onClick={() => {
           onOpenSettings();
           triggerHaptic('light');
         }}
-        className="flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-slate-400 hover:text-white transition-colors"
+        className="flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors"
       >
         <Settings className="w-4 h-4" />
         <span className="text-[10px]">Ajustes</span>

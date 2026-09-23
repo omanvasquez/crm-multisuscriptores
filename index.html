@@ -21,18 +21,42 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('crm_theme');
+          var prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+          var isDark = saved ? saved === 'dark' : !prefersLight;
+          var root = document.documentElement;
+          if (isDark) {
+            root.classList.add('dark');
+            root.style.backgroundColor = '#020617';
+            root.style.colorScheme = 'dark';
+          } else {
+            root.classList.remove('dark');
+            root.style.backgroundColor = '#f8fafc';
+            root.style.colorScheme = 'light';
+          }
+        } catch (e) {}
+      })();
+    </script>
     <style>
-      /* Ensure screen is immediately dark during initial boot and avoid white flash */
-      html, body {
-        background-color: #020617 !important;
+      html.dark, html.dark body {
+        background-color: #020617;
         color: #f8fafc;
+      }
+      html:not(.dark), html:not(.dark) body {
+        background-color: #f8fafc;
+        color: #0f172a;
+      }
+      html, body {
         margin: 0;
         padding: 0;
         min-height: 100vh;
       }
     </style>
   </head>
-  <body class="bg-slate-950 text-slate-100 font-['Plus_Jakarta_Sans',sans-serif] antialiased selection:bg-emerald-500 selection:text-white min-h-screen">
+  <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-['Plus_Jakarta_Sans',sans-serif] antialiased selection:bg-emerald-500 selection:text-white min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

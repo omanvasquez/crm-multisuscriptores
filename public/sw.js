@@ -1,4 +1,4 @@
-const CACHE_NAME = 'crm-multisuscriptores-v3';
+const CACHE_NAME = 'crm-multisuscriptores-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

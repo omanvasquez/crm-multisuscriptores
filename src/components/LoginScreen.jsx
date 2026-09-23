@@ -6,27 +6,27 @@ export default function LoginScreen() {
   const { loginWithGoogle, authError } = useAuth();
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-slate-950 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-slate-50 dark:bg-slate-950 relative overflow-hidden transition-colors duration-200">
       {/* Background glowing effects */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-teal-600/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-teal-500/10 dark:bg-teal-600/10 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl relative z-10 text-center">
+      <div className="w-full max-w-md bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl relative z-10 text-center">
         
         {/* Logo */}
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20 text-white font-bold text-2xl">
           MS
         </div>
 
-        <h1 className="text-2xl font-bold text-white tracking-tight">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
           CRM Multi-Suscripciones
         </h1>
-        <p className="mt-2 text-sm text-slate-400">
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
           Control de cobranzas recurrentes y proyecciones a comercios locales.
         </p>
 
         {authError && (
-          <div className="mt-6 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2.5 text-left">
+          <div className="mt-6 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2.5 text-left">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{authError}</span>
           </div>
@@ -35,7 +35,7 @@ export default function LoginScreen() {
         <div className="mt-8">
           <button
             onClick={loginWithGoogle}
-            className="w-full py-3.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-3 shadow-lg shadow-white/5 active:scale-[0.98]"
+            className="w-full py-3.5 px-4 rounded-xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-3 shadow-lg shadow-slate-900/10 dark:shadow-white/5 active:scale-[0.98]"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -59,21 +59,21 @@ export default function LoginScreen() {
           </button>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-slate-800/80 flex items-center justify-center gap-2 text-xs text-slate-500">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <ShieldCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
           <span>Acceso exclusivo para el administrador</span>
         </div>
 
       </div>
 
       {/* Footer Branding */}
-      <div className="mt-8 text-center text-xs text-slate-500 z-10">
+      <div className="mt-8 text-center text-xs text-slate-400 dark:text-slate-500 z-10">
         <span>Desarrollado por</span>{' '}
         <a
           href="https://oman-vasquez.web.app"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-semibold text-slate-400 hover:text-emerald-400 transition-colors inline-flex items-center gap-1"
+          className="font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors inline-flex items-center gap-1"
         >
           Oman Vásquez
           <ExternalLink className="w-3 h-3" />

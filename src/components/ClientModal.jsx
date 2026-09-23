@@ -143,32 +143,32 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto animate-in fade-in">
+      <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative my-8 transition-colors duration-150">
         
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Title */}
-        <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
             <Building2 className="w-4 h-4" />
           </div>
           {clientToEdit ? 'Editar Comercio' : 'Registrar Nuevo Comercio'}
         </h2>
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           {clientToEdit 
             ? 'Actualiza los datos del comercio suscrito.'
             : 'Ingresa los datos para control de cobranza recurrente.'}
         </p>
 
         {error && (
-          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs">
             {error}
           </div>
         )}
@@ -179,7 +179,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
           {/* Row 1: Nombre Negocio & App Suscrita */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Nombre del Negocio *
               </label>
               <input
@@ -188,12 +188,12 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                 placeholder="Ej. Bodega Don Pedro"
                 value={formData.nombre_negocio}
                 onChange={(e) => setFormData({ ...formData, nombre_negocio: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 App Suscrita (Categoría) *
               </label>
               <div className="relative">
@@ -204,7 +204,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                   placeholder="Ej. BodegasPro, GymControl"
                   value={formData.app_suscrita}
                   onChange={(e) => setFormData({ ...formData, app_suscrita: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 />
                 <datalist id="apps-list">
                   {existingApps.map((app) => (
@@ -221,9 +221,9 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
 
           {/* Row 2: ID Único / Fijo de la App */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+                <KeyRound className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 ID Fijo de la App / Base de Datos
               </span>
               <span className="text-[10px] text-slate-500 font-normal">
@@ -235,14 +235,14 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
               placeholder="Ej. usr_84fa-92#x1, BP-0049-C, tenant_gym_99"
               value={formData.id_externo}
               onChange={(e) => setFormData({ ...formData, id_externo: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 font-mono text-sm focus:outline-none focus:border-emerald-500 transition-colors placeholder:font-sans placeholder:text-slate-600"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-mono text-sm focus:outline-none focus:border-emerald-500 transition-colors placeholder:font-sans placeholder:text-slate-400 dark:placeholder:text-slate-600"
             />
           </div>
 
           {/* Row 3: Encargado & Cédula */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Nombre del Encargado / Dueño
               </label>
               <input
@@ -250,12 +250,12 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                 placeholder="Ej. Pedro Pérez"
                 value={formData.encargado}
                 onChange={(e) => setFormData({ ...formData, encargado: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Cédula / RIF
               </label>
               <input
@@ -263,7 +263,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                 placeholder="Ej. 19888063 o J-12345678"
                 value={formData.cedula}
                 onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
               />
             </div>
           </div>
@@ -271,7 +271,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
           {/* Row 4: Teléfono & Estado/Región */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Teléfono de Contacto (WhatsApp) *
               </label>
               <input
@@ -280,7 +280,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                 placeholder="Ej. 04124169949"
                 value={formData.telefono}
                 onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">
                 Se normalizará automáticamente a formato +58.
@@ -288,7 +288,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Estado / Región
               </label>
               <input
@@ -296,14 +296,14 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                 placeholder="Ej. Cojedes - Tinaquillo"
                 value={formData.estado_region}
                 onChange={(e) => setFormData({ ...formData, estado_region: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
               />
             </div>
           </div>
 
           {/* Row 5: Dirección Física */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Dirección / Local / Punto de Referencia
             </label>
             <input
@@ -311,18 +311,18 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
               placeholder="Ej. Av. Bolívar frente a la plaza, Local #3"
               value={formData.direccion}
               onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
 
           {/* Row 6: Tarifa USD & Fecha Registro */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800/80">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-800/80">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Tarifa Mensual ($USD) *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-2.5 text-slate-500 font-bold">$</span>
+                <span className="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
                 <input
                   type="number"
                   step="0.5"
@@ -330,13 +330,13 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                   required
                   value={formData.tarifa_base_usd}
                   onChange={(e) => setFormData({ ...formData, tarifa_base_usd: e.target.value })}
-                  className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 font-bold text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 {formData.en_periodo_prueba ? 'Fecha de Inicio de la Prueba' : 'Fecha de Inicio del Contrato'}
               </label>
               <input
@@ -351,37 +351,37 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                     fecha_fin_prueba: newEnd 
                   });
                 }}
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
               />
             </div>
           </div>
 
           {/* Row 7: Trial Period Configuration */}
-          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3">
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={formData.en_periodo_prueba}
                   onChange={(e) => handleTrialToggle(e.target.checked)}
-                  className="w-4 h-4 rounded text-purple-600 bg-slate-900 border-slate-700 focus:ring-purple-500"
+                  className="w-4 h-4 rounded text-purple-600 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 focus:ring-purple-500"
                 />
-                <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                   ¿Tiene período de prueba gratuito?
                 </span>
               </label>
               {formData.en_periodo_prueba && (
-                <span className="text-[11px] font-semibold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+                <span className="text-[11px] font-semibold text-purple-700 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
                   Sin costo inicial
                 </span>
               )}
             </div>
 
             {formData.en_periodo_prueba ? (
-              <div className="pt-2 border-t border-slate-800/80 space-y-3 animate-in fade-in duration-200">
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-3 animate-in fade-in duration-200">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-slate-400">Duración:</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Duración:</span>
                   {[7, 14, 30].map((d) => (
                     <button
                       key={d}
@@ -390,7 +390,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                       className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                         Number(formData.dias_prueba) === d
                           ? 'bg-purple-600 text-white shadow-sm'
-                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                          : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
                       }`}
                     >
                       {d} días
@@ -403,41 +403,41 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                       max="120"
                       value={formData.dias_prueba}
                       onChange={(e) => handleTrialDaysChange(Number(e.target.value))}
-                      className="w-16 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs text-center text-slate-200 focus:outline-none focus:border-purple-500"
+                      className="w-16 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-center text-slate-800 dark:text-slate-200 focus:outline-none focus:border-purple-500"
                     />
                     <span className="text-xs text-slate-500">días</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-purple-950/20 border border-purple-500/20 text-purple-200">
+                <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-500/20 text-purple-900 dark:text-purple-200">
                   <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-purple-400" />
+                    <Clock className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                     <span>La prueba finaliza el:</span>
                   </div>
-                  <span className="font-bold text-purple-300">
+                  <span className="font-bold text-purple-700 dark:text-purple-300">
                     {formData.fecha_fin_prueba ? new Date(formData.fecha_fin_prueba + 'T00:00:00').toLocaleDateString('es-VE') : 'N/A'}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   💡 Durante este período el comercio no debe dinero. Al vencer, le tocará pagar su <strong>primer mes por adelantado</strong>.
                 </p>
               </div>
             ) : (
               !clientToEdit && (
-                <div className="pt-2 border-t border-slate-800/80">
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80">
+                  <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={formData.primer_pago_inmediato}
                       onChange={(e) => setFormData({ ...formData, primer_pago_inmediato: e.target.checked })}
-                      className="w-4 h-4 rounded text-emerald-600 bg-slate-900 border-slate-700 focus:ring-emerald-500"
+                      className="w-4 h-4 rounded text-emerald-600 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 focus:ring-emerald-500"
                     />
                     <span>
                       El comercio ya pagó el primer mes por adelantado (Solvente hasta el próximo mes)
                     </span>
                   </label>
                   {!formData.primer_pago_inmediato && (
-                    <p className="text-[11px] text-amber-400/90 mt-1.5 ml-6">
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400/90 mt-1.5 ml-6">
                       ⚠️ Se creará con cobro pendiente para hoy (prepago).
                     </p>
                   )}
@@ -448,15 +448,15 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
 
           {/* Row 8: Suspension State (if editing) */}
           {clientToEdit && (
-            <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
               <label className="flex items-center gap-2.5 cursor-pointer select-none text-xs">
                 <input
                   type="checkbox"
                   checked={formData.suspendido}
                   onChange={(e) => setFormData({ ...formData, suspendido: e.target.checked })}
-                  className="w-4 h-4 rounded text-rose-600 bg-slate-900 border-slate-700 focus:ring-rose-500"
+                  className="w-4 h-4 rounded text-rose-600 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 focus:ring-rose-500"
                 />
-                <span className={formData.suspendido ? 'font-semibold text-rose-400' : 'text-slate-300'}>
+                <span className={formData.suspendido ? 'font-semibold text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-300'}>
                   Marcar servicio como <strong>Suspendido</strong> (acceso pausado, se mueve a pestaña Suspendidos)
                 </span>
               </label>
@@ -464,11 +464,11 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
           )}
 
           {/* Action Buttons */}
-          <div className="mt-8 pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+          <div className="mt-8 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors"
+              className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium transition-colors"
             >
               Cancelar
             </button>

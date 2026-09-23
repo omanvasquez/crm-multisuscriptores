@@ -46,34 +46,34 @@ export default function PaymentSettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl relative transition-colors duration-150">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
             <Settings className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white tracking-tight">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
               Ajustes de Cobranza & Cuentas
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Datos para Pago Móvil y mensajes de WhatsApp
             </p>
           </div>
         </div>
 
         {savedSuccess && (
-          <div className="mt-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+          <div className="mt-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>¡Datos de Pago Móvil actualizados en Firestore!</span>
           </div>
@@ -82,7 +82,7 @@ export default function PaymentSettingsModal({
         <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
           
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Nombre de Banco & Código
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -91,7 +91,7 @@ export default function PaymentSettingsModal({
                 placeholder="ej. Banco de Venezuela"
                 value={formData.banco}
                 onChange={(e) => setFormData({ ...formData, banco: e.target.value })}
-                className="col-span-2 py-2 px-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                className="col-span-2 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-emerald-500"
                 required
               />
               <input
@@ -99,7 +99,7 @@ export default function PaymentSettingsModal({
                 placeholder="ej. 0102"
                 value={formData.bancoCodigo}
                 onChange={(e) => setFormData({ ...formData, bancoCodigo: e.target.value })}
-                className="col-span-1 py-2 px-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
+                className="col-span-1 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
                 required
               />
             </div>
@@ -107,7 +107,7 @@ export default function PaymentSettingsModal({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Cédula / RIF
               </label>
               <input
@@ -115,13 +115,13 @@ export default function PaymentSettingsModal({
                 placeholder="ej. 19.888.063"
                 value={formData.cedula}
                 onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
-                className="w-full py-2 px-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
+                className="w-full py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Teléfono Pago Móvil
               </label>
               <input
@@ -129,14 +129,14 @@ export default function PaymentSettingsModal({
                 placeholder="ej. 04124169949"
                 value={formData.telefono}
                 onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                className="w-full py-2 px-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
+                className="w-full py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Nombre del Titular
             </label>
             <input
@@ -144,7 +144,7 @@ export default function PaymentSettingsModal({
               placeholder="ej. Oman Vásquez"
               value={formData.titular}
               onChange={(e) => setFormData({ ...formData, titular: e.target.value })}
-              className="w-full py-2 px-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+              className="w-full py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-emerald-500"
               required
             />
           </div>
@@ -163,21 +163,21 @@ export default function PaymentSettingsModal({
         </form>
 
         {/* Sección de Respaldo JSON */}
-        <div className="mt-6 pt-5 border-t border-slate-800">
+        <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                <FileJson className="w-3.5 h-3.5 text-teal-400" />
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <FileJson className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                 <span>Copia de Seguridad Completa</span>
               </h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 Descarga un archivo .JSON con todos tus clientes y transacciones
               </p>
             </div>
             <button
               type="button"
               onClick={onExportJson}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors shrink-0"
+              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-medium border border-slate-200 dark:border-slate-700 transition-colors shrink-0"
             >
               Descargar JSON
             </button>
