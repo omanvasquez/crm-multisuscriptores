@@ -5,6 +5,9 @@ import {
   onSnapshot, 
   addDoc, 
   updateDoc, 
+  deleteDoc,
+  setDoc,
+  getDoc,
   doc, 
   serverTimestamp, 
   Timestamp,
@@ -16,6 +19,8 @@ import { normalizeVenezuelanPhone } from '../utils/phone';
 
 const CLIENTS_COLLECTION = 'clientes';
 const TRANSACTIONS_COLLECTION = 'transacciones';
+const CONFIG_COLLECTION = 'configuracion';
+const PAGOS_DOC = 'pagos';
 
 /**
  * Subscribes to all active clients in real time and calculates dynamic statuses
@@ -32,7 +37,7 @@ export function subscribeToClients(onSuccess, onError) {
       const now = new Date();
       const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      let estado_cliente = 'SOLVENTE'; // 'EN_PRUEBA' | 'PRUEBA_VENCIDA' | 'SOLVENTE' | 'MOROSO' | 'SUSPENDIDO'
+      let estado_cliente = 'SOLVENTE'; // 'EN_PRUEBA' | 'PRUEBA_VENCIDA' | 'POR_VENCER' | 'SOLVENTE' | 'MOROSO' | 'SUSPENDIDO'
       let isSolvent = true;
       let dias_restantes_prueba = null;
       let dias_diferencia = 0;
@@ -81,6 +86,9 @@ export function subscribeToClients(onSuccess, onError) {
           if (dueMidnight < todayMidnight) {
             isSolvent = false;
             estado_cliente = 'MOROSO';
+          } else if (dias_diferencia >= 0 && dias_diferencia <= 4) {
+            isSolvent = true;
+            estado_cliente = 'POR_VENCER';
           } else {
             isSolvent = true;
             estado_cliente = 'SOLVENTE';
@@ -132,7 +140,6 @@ export async function createClient(data) {
     trialEndDate = data.fecha_fin_prueba 
       ? new Date(data.fecha_fin_prueba) 
       : new Date(startDate.getTime() + days * 24 * 60 * 60 * 1000);
-    // First payment is due when trial ends
     nextPaymentDate = trialEndDate;
     isSolvent = true;
   } else {
@@ -143,7 +150,6 @@ export async function createClient(data) {
       nextPaymentDate = nextDate;
       isSolvent = true;
     } else {
-      // In prepaid, if first payment is not recorded upfront, first payment is due today
       nextPaymentDate = data.fecha_proximo_pago ? new Date(data.fecha_proximo_pago) : startDate;
       const now = new Date();
       const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -241,7 +247,7 @@ export async function softDeleteClient(clientId) {
 }
 
 /**
- * Records a payment in 'transacciones' and advances next payment date by 1 month (prepaid)
+ * Records a payment in 'transacciones' and advances next payment date by X months (multi-month support)
  */
 export async function registerClientPayment({
   clientId,
@@ -249,11 +255,15 @@ export async function registerClientPayment({
   montoUsd,
   valorBcv,
   metodoPago = 'Pago Móvil',
-  currentDueDate
+  currentDueDate,
+  mesesAdelantados = 1,
+  referencia = '',
+  nota = ''
 }) {
   const montoUsdNum = Number(montoUsd);
   const valorBcvNum = Number(valorBcv);
   const montoVes = Number((montoUsdNum * valorBcvNum).toFixed(2));
+  const meses = Number(mesesAdelantados) || 1;
 
   // 1. Create transaction doc
   const transactionData = {
@@ -263,23 +273,24 @@ export async function registerClientPayment({
     monto_usd_base: montoUsdNum,
     tasa_bcv_aplicada: valorBcvNum,
     monto_ves_cobrado: montoVes,
-    metodo_pago: metodoPago
+    metodo_pago: metodoPago,
+    meses_pagados: meses,
+    referencia: referencia?.trim() || '',
+    nota: nota?.trim() || ''
   };
 
   const transactionRef = await addDoc(collection(db, TRANSACTIONS_COLLECTION), transactionData);
 
-  // 2. Calculate next payment date (+1 month from current due date or from today)
+  // 2. Calculate next payment date (+X months from current due date or from today)
   let baseDate = currentDueDate ? (currentDueDate.toDate ? currentDueDate.toDate() : new Date(currentDueDate)) : new Date();
   const now = new Date();
   
-  // If current due date was already in the past, add 1 month from today
   if (baseDate < now) {
     baseDate = new Date();
   }
   
-  // Add 1 month for upcoming prepaid cycle
   const nextDate = new Date(baseDate);
-  nextDate.setMonth(nextDate.getMonth() + 1);
+  nextDate.setMonth(nextDate.getMonth() + meses);
 
   // 3. Update client record (completes trial if in trial, reactivates if suspended)
   const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
@@ -287,18 +298,64 @@ export async function registerClientPayment({
     fecha_ultimo_pago: Timestamp.now(),
     fecha_proximo_pago: Timestamp.fromDate(nextDate),
     estado_pago: true,
-    en_periodo_prueba: false, // Transition out of trial to active paid contract
-    suspendido: false, // Auto-reactivate on payment
+    en_periodo_prueba: false,
+    suspendido: false,
     actualizado_el: serverTimestamp()
   });
 
-  return transactionRef;
+  return {
+    id: transactionRef.id,
+    ...transactionData,
+    calculatedNextDate: nextDate
+  };
+}
+
+/**
+ * Updates an existing transaction (Edición de cobro)
+ */
+export async function updateTransaction(transactionId, updateData) {
+  const txRef = doc(db, TRANSACTIONS_COLLECTION, transactionId);
+  const data = {
+    nombre_negocio: updateData.nombre_negocio?.trim() || '',
+    monto_usd_base: Number(updateData.monto_usd_base) || 0,
+    tasa_bcv_aplicada: Number(updateData.tasa_bcv_aplicada) || 0,
+    monto_ves_cobrado: Number(updateData.monto_ves_cobrado) || 0,
+    metodo_pago: updateData.metodo_pago || 'Pago Móvil',
+    meses_pagados: Number(updateData.meses_pagados) || 1,
+    referencia: updateData.referencia?.trim() || '',
+    nota: updateData.nota?.trim() || '',
+    actualizado_el: serverTimestamp()
+  };
+
+  if (updateData.fecha_pago) {
+    data.fecha_pago = updateData.fecha_pago instanceof Timestamp 
+      ? updateData.fecha_pago 
+      : Timestamp.fromDate(new Date(updateData.fecha_pago));
+  }
+
+  return await updateDoc(txRef, data);
+}
+
+/**
+ * Deletes a transaction and optionally adjusts client's due date (Borrado de cobro)
+ */
+export async function deleteTransaction(transactionId, clientId = null, adjustDate = null) {
+  const txRef = doc(db, TRANSACTIONS_COLLECTION, transactionId);
+  await deleteDoc(txRef);
+
+  if (clientId && adjustDate) {
+    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
+    await updateDoc(clientRef, {
+      fecha_proximo_pago: Timestamp.fromDate(new Date(adjustDate)),
+      actualizado_el: serverTimestamp()
+    });
+  }
 }
 
 /**
  * Subscribes to recent transactions
  */
-export function subscribeToTransactions(onSuccess, onError, maxItems = 50) {
+export function subscribeToTransactions(onSuccess, onError, maxItems = 100) {
   const q = query(
     collection(db, TRANSACTIONS_COLLECTION),
     orderBy('fecha_pago', 'desc'),
@@ -312,4 +369,29 @@ export function subscribeToTransactions(onSuccess, onError, maxItems = 50) {
     }));
     onSuccess(transactions);
   }, onError);
+}
+
+/**
+ * Subscribes to payment configuration in Firestore (banco, cedula, telefono)
+ */
+export function subscribeToPaymentConfig(onSuccess, onError) {
+  const docRef = doc(db, CONFIG_COLLECTION, PAGOS_DOC);
+  return onSnapshot(docRef, (snap) => {
+    if (snap.exists()) {
+      onSuccess(snap.data());
+    } else {
+      onSuccess(null);
+    }
+  }, onError);
+}
+
+/**
+ * Saves or updates payment configuration in Firestore
+ */
+export async function savePaymentConfig(configData) {
+  const docRef = doc(db, CONFIG_COLLECTION, PAGOS_DOC);
+  return await setDoc(docRef, {
+    ...configData,
+    actualizado_el: serverTimestamp()
+  }, { merge: true });
 }

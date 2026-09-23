@@ -17,9 +17,11 @@ import {
   Clock,
   KeyRound,
   PauseCircle,
-  PlayCircle
+  PlayCircle,
+  History
 } from 'lucide-react';
 import { generateWhatsAppLink } from '../utils/phone';
+import { triggerHaptic } from '../utils/haptics';
 
 // Generates consistent soft color styling for app badge based on app name
 function getAppBadgeColor(appName = '') {
@@ -39,10 +41,12 @@ function getAppBadgeColor(appName = '') {
 export default function ClientCard({ 
   client, 
   bcvRate, 
+  paymentConfig,
   onRegisterPayment, 
   onEditClient, 
   onDeleteClient,
-  onToggleSuspend
+  onToggleSuspend,
+  onViewClientHistory
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
@@ -55,6 +59,7 @@ export default function ClientCard({
   const estadoCliente = isSuspended ? 'SUSPENDIDO' : (client.estado_cliente || (client.estado_pago ? 'SOLVENTE' : 'MOROSO'));
   const isTrial = estadoCliente === 'EN_PRUEBA';
   const isTrialExpired = estadoCliente === 'PRUEBA_VENCIDA';
+  const isUpcoming = estadoCliente === 'POR_VENCER';
   const isOverdue = (estadoCliente === 'MOROSO' || isTrialExpired) && !isSuspended;
 
   // Dates
@@ -75,6 +80,7 @@ export default function ClientCard({
     if (!client.id_externo) return;
     navigator.clipboard.writeText(client.id_externo);
     setCopiedId(true);
+    triggerHaptic('light');
     setTimeout(() => setCopiedId(false), 2000);
   };
 
@@ -88,7 +94,8 @@ export default function ClientCard({
     telefono: client.telefono,
     estadoCliente,
     fechaFinPrueba: trialEndDate ? trialEndDate.toLocaleDateString('es-VE') : null,
-    diasRestantesPrueba: client.dias_restantes_prueba
+    diasRestantesPrueba: client.dias_restantes_prueba,
+    pagoMovilConfig: paymentConfig
   });
 
   // Top accent bar color
@@ -96,6 +103,7 @@ export default function ClientCard({
     if (isSuspended) return 'bg-slate-500';
     if (isTrial) return 'bg-purple-500';
     if (isTrialExpired) return 'bg-amber-500';
+    if (isUpcoming) return 'bg-amber-400';
     if (estadoCliente === 'MOROSO') return 'bg-rose-500';
     return 'bg-emerald-500';
   };
@@ -108,9 +116,11 @@ export default function ClientCard({
           ? isTrialExpired 
             ? 'bg-amber-950/15 border-amber-500/40 hover:border-amber-500/60 shadow-lg shadow-amber-950/20'
             : 'bg-rose-950/20 border-rose-500/40 hover:border-rose-500/60 shadow-lg shadow-rose-950/30' 
-          : isTrial
-            ? 'bg-purple-950/15 border-purple-500/30 hover:border-purple-500/50 shadow-md'
-            : 'bg-slate-900/70 border-slate-800 hover:border-slate-700 shadow-md'
+          : isUpcoming
+            ? 'bg-amber-950/10 border-amber-500/30 hover:border-amber-500/50 shadow-md'
+            : isTrial
+              ? 'bg-purple-950/15 border-purple-500/30 hover:border-purple-500/50 shadow-md'
+              : 'bg-slate-900/70 border-slate-800 hover:border-slate-700 shadow-md'
     }`}>
       
       {/* Top Accent Strip */}
@@ -142,17 +152,22 @@ export default function ClientCard({
               ) : isTrialExpired ? (
                 <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                   <Clock className="w-3 h-3 text-amber-400" />
-                  Prueba Vencida (Cobrar 1er Mes)
+                  Prueba Vencida
                 </span>
               ) : estadoCliente === 'MOROSO' ? (
                 <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
                   Moroso ({Math.abs(diffDays)}d)
                 </span>
+              ) : isUpcoming ? (
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-amber-400" />
+                  Por Vencer ({diffDays}d)
+                </span>
               ) : (
                 <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
-                  Solvente {diffDays <= 5 ? `(${diffDays}d restantes)` : ''}
+                  Solvente {diffDays <= 7 ? `(${diffDays}d)` : ''}
                 </span>
               )}
             </div>
@@ -202,13 +217,20 @@ export default function ClientCard({
                   className="fixed inset-0 z-20" 
                   onClick={() => setMenuOpen(false)}
                 />
-                <div className="absolute right-0 top-8 z-30 w-44 rounded-xl bg-slate-800 border border-slate-700 shadow-xl py-1 text-xs">
+                <div className="absolute right-0 top-8 z-30 w-48 rounded-xl bg-slate-800 border border-slate-700 shadow-xl py-1 text-xs">
                   <button
                     onClick={() => { setMenuOpen(false); onEditClient(client); }}
                     className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-700/80 flex items-center gap-2"
                   >
                     <Edit className="w-3.5 h-3.5 text-blue-400" />
-                    Editar
+                    Editar Datos
+                  </button>
+                  <button
+                    onClick={() => { setMenuOpen(false); onViewClientHistory && onViewClientHistory(client); }}
+                    className="w-full px-3 py-2 text-left text-teal-300 hover:bg-slate-700/80 flex items-center gap-2"
+                  >
+                    <History className="w-3.5 h-3.5 text-teal-400" />
+                    Ver Historial de Cobros
                   </button>
                   <button
                     onClick={() => { setMenuOpen(false); onToggleSuspend && onToggleSuspend(client); }}
@@ -233,7 +255,7 @@ export default function ClientCard({
                     className="w-full px-3 py-2 text-left text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    Desactivar
+                    Desactivar Comercio
                   </button>
                 </div>
               </>
@@ -283,7 +305,7 @@ export default function ClientCard({
               </span>
             ) : (
               <span>
-                Próximo corte: <strong className={isOverdue ? 'text-rose-400' : 'text-slate-200'}>
+                Próximo corte: <strong className={isOverdue ? 'text-rose-400' : isUpcoming ? 'text-amber-300' : 'text-slate-200'}>
                   {dueDate ? dueDate.toLocaleDateString('es-VE') : 'Por definir'}
                 </strong>
               </span>
@@ -326,11 +348,13 @@ export default function ClientCard({
                   ? isTrialExpired
                     ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-900/30 ring-2 ring-amber-500/50'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/30 ring-2 ring-emerald-500/50'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                  : isUpcoming
+                    ? 'bg-amber-600/90 hover:bg-amber-500 text-white shadow-md shadow-amber-900/20'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
             }`}
           >
             <MessageCircle className="w-4 h-4" />
-            <span>{isSuspended ? 'Recontactar' : 'WhatsApp'}</span>
+            <span>{isSuspended ? 'Recontactar' : isUpcoming ? 'Avisar WhatsApp' : 'WhatsApp'}</span>
           </a>
 
           {/* Register Payment Button */}

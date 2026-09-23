@@ -8,6 +8,9 @@ import ClientModal from './components/ClientModal';
 import PaymentModal from './components/PaymentModal';
 import BcvModal from './components/BcvModal';
 import TransactionsDrawer from './components/TransactionsDrawer';
+import TransactionEditModal from './components/TransactionEditModal';
+import PaymentSettingsModal from './components/PaymentSettingsModal';
+import BottomNav from './components/BottomNav';
 import Footer from './components/Footer';
 
 import { 
@@ -17,21 +20,23 @@ import {
   softDeleteClient, 
   registerClientPayment, 
   subscribeToTransactions,
+  updateTransaction,
+  deleteTransaction,
+  subscribeToPaymentConfig,
+  savePaymentConfig,
   toggleSuspendClient
 } from './services/clientService';
 import { getBcvRate } from './services/bcvService';
-import { exportClientsToCSV } from './utils/exportCsv';
+import { exportClientsToCSV, exportFullBackupJSON } from './utils/exportCsv';
+import { triggerHaptic } from './utils/haptics';
 
 import { 
   Search, 
-  Filter, 
   PlusCircle, 
-  FileSpreadsheet, 
   RefreshCw, 
-  Building2,
-  AlertCircle,
-  CheckCircle2,
-  Trash2
+  Building2, 
+  Trash2,
+  Clock
 } from 'lucide-react';
 
 export default function App() {
@@ -41,12 +46,13 @@ export default function App() {
   const [clients, setClients] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [bcvData, setBcvData] = useState(null);
+  const [paymentConfig, setPaymentConfig] = useState(null);
   const [loadingClients, setLoadingClients] = useState(true);
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedApp, setSelectedApp] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, DELINQUENT, SOLVENT
+  const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, SOLVENT, UPCOMING, TRIAL, DELINQUENT, SUSPENDED
 
   // Modals state
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
@@ -55,6 +61,9 @@ export default function App() {
   const [clientForPayment, setClientForPayment] = useState(null);
   const [isBcvModalOpen, setIsBcvModalOpen] = useState(false);
   const [isTransactionsOpen, setIsTransactionsOpen] = useState(false);
+  const [clientFilterForTransactions, setClientFilterForTransactions] = useState(null);
+  const [transactionToEdit, setTransactionToEdit] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState(null);
 
   // Load BCV Rate
@@ -63,7 +72,7 @@ export default function App() {
     getBcvRate().then(data => setBcvData(data));
   }, [currentUser]);
 
-  // Subscribe to Clients & Transactions in real-time
+  // Subscribe to Clients, Transactions & Payment Settings in real-time
   useEffect(() => {
     if (!currentUser) return;
 
@@ -84,9 +93,15 @@ export default function App() {
       (err) => console.error('Error fetching transactions:', err)
     );
 
+    const unsubConfig = subscribeToPaymentConfig(
+      (data) => setPaymentConfig(data),
+      (err) => console.warn('Payment config fetch:', err)
+    );
+
     return () => {
       unsubClients();
       unsubTransactions();
+      unsubConfig();
     };
   }, [currentUser]);
 
@@ -101,9 +116,17 @@ export default function App() {
     return Array.from(appsSet);
   }, [clients]);
 
-  // Count of suspended clients
+  // Counts for filters and badges
   const suspendedCount = useMemo(() => {
     return clients.filter(c => c.suspendido).length;
+  }, [clients]);
+
+  const delinquentCount = useMemo(() => {
+    return clients.filter(c => !c.suspendido && (c.estado_cliente === 'MOROSO' || c.estado_cliente === 'PRUEBA_VENCIDA')).length;
+  }, [clients]);
+
+  const upcomingCount = useMemo(() => {
+    return clients.filter(c => !c.suspendido && c.estado_cliente === 'POR_VENCER').length;
   }, [clients]);
 
   // Filter clients based on search query, selected app, and payment status
@@ -139,7 +162,8 @@ export default function App() {
       }
 
       const estado = c.estado_cliente || (c.estado_pago ? 'SOLVENTE' : 'MOROSO');
-      if (statusFilter === 'SOLVENT' && estado !== 'SOLVENTE') return false;
+      if (statusFilter === 'SOLVENT' && estado !== 'SOLVENTE' && estado !== 'POR_VENCER') return false;
+      if (statusFilter === 'UPCOMING' && estado !== 'POR_VENCER') return false;
       if (statusFilter === 'TRIAL' && estado !== 'EN_PRUEBA') return false;
       if (statusFilter === 'DELINQUENT' && estado !== 'MOROSO' && estado !== 'PRUEBA_VENCIDA') return false;
 
@@ -159,6 +183,7 @@ export default function App() {
   const handleToggleSuspend = async (client) => {
     try {
       await toggleSuspendClient(client.id, !client.suspendido);
+      triggerHaptic('medium');
     } catch (err) {
       console.error('Error toggling suspension:', err);
     }
@@ -168,6 +193,7 @@ export default function App() {
     if (!clientToDelete) return;
     try {
       await softDeleteClient(clientToDelete.id);
+      triggerHaptic('heavy');
       setClientToDelete(null);
     } catch (err) {
       console.error('Error in soft delete:', err);
@@ -175,7 +201,33 @@ export default function App() {
   };
 
   const handleConfirmPayment = async (paymentData) => {
-    await registerClientPayment(paymentData);
+    return await registerClientPayment(paymentData);
+  };
+
+  // Transaction Edit / Delete
+  const handleSaveTransaction = async (txId, updateData) => {
+    await updateTransaction(txId, updateData);
+  };
+
+  const handleDeleteTransaction = async (txId, clientId) => {
+    await deleteTransaction(txId, clientId);
+  };
+
+  // View specific client's transactions
+  const handleViewClientHistory = (client) => {
+    setClientFilterForTransactions(client);
+    setIsTransactionsOpen(true);
+    triggerHaptic('light');
+  };
+
+  // Payment settings & Backup
+  const handleSaveConfig = async (newConfig) => {
+    await savePaymentConfig(newConfig);
+  };
+
+  const handleExportJson = () => {
+    exportFullBackupJSON(clients, transactions, paymentConfig);
+    triggerHaptic('medium');
   };
 
   // If checking authentication
@@ -204,13 +256,17 @@ export default function App() {
           setClientToEdit(null);
           setIsClientModalOpen(true);
         }}
-        onOpenTransactions={() => setIsTransactionsOpen(true)}
+        onOpenTransactions={() => {
+          setClientFilterForTransactions(null);
+          setIsTransactionsOpen(true);
+        }}
         onExportClients={() => exportClientsToCSV(clients, bcvData?.rate)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         clientsCount={clients.length}
       />
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+      {/* Main Content (with bottom padding for mobile BottomNav) */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24 sm:pb-12">
         
         {/* KPI Summary Cards */}
         <MetricsCards 
@@ -252,10 +308,10 @@ export default function App() {
                 ))}
               </select>
 
-              {/* Status Filter */}
-              <div className="inline-flex rounded-xl bg-slate-950/70 p-1 border border-slate-800 text-xs">
+              {/* Status Filter Pills */}
+              <div className="inline-flex rounded-xl bg-slate-950/70 p-1 border border-slate-800 text-xs flex-wrap gap-0.5">
                 <button
-                  onClick={() => setStatusFilter('ALL')}
+                  onClick={() => { setStatusFilter('ALL'); triggerHaptic('light'); }}
                   className={`px-3 py-1 rounded-lg font-medium transition-all ${
                     statusFilter === 'ALL' 
                       ? 'bg-slate-800 text-white shadow-sm' 
@@ -265,8 +321,8 @@ export default function App() {
                   Todos
                 </button>
                 <button
-                  onClick={() => setStatusFilter('SOLVENT')}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                  onClick={() => { setStatusFilter('SOLVENT'); triggerHaptic('light'); }}
+                  className={`px-2.5 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
                     statusFilter === 'SOLVENT' 
                       ? 'bg-emerald-500/20 text-emerald-300 font-semibold' 
                       : 'text-slate-400 hover:text-emerald-400'
@@ -276,8 +332,19 @@ export default function App() {
                   Solventes
                 </button>
                 <button
-                  onClick={() => setStatusFilter('TRIAL')}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                  onClick={() => { setStatusFilter('UPCOMING'); triggerHaptic('light'); }}
+                  className={`px-2.5 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                    statusFilter === 'UPCOMING' 
+                      ? 'bg-amber-500/20 text-amber-300 font-semibold' 
+                      : 'text-slate-400 hover:text-amber-400'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  Por Vencer {upcomingCount > 0 ? `(${upcomingCount})` : ''}
+                </button>
+                <button
+                  onClick={() => { setStatusFilter('TRIAL'); triggerHaptic('light'); }}
+                  className={`px-2.5 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
                     statusFilter === 'TRIAL' 
                       ? 'bg-purple-500/20 text-purple-300 font-semibold' 
                       : 'text-slate-400 hover:text-purple-400'
@@ -287,19 +354,19 @@ export default function App() {
                   En Prueba
                 </button>
                 <button
-                  onClick={() => setStatusFilter('DELINQUENT')}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                  onClick={() => { setStatusFilter('DELINQUENT'); triggerHaptic('light'); }}
+                  className={`px-2.5 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
                     statusFilter === 'DELINQUENT' 
                       ? 'bg-rose-500/20 text-rose-300 font-semibold' 
                       : 'text-slate-400 hover:text-rose-400'
                   }`}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                  Morosos
+                  Morosos {delinquentCount > 0 ? `(${delinquentCount})` : ''}
                 </button>
                 <button
-                  onClick={() => setStatusFilter('SUSPENDED')}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                  onClick={() => { setStatusFilter('SUSPENDED'); triggerHaptic('light'); }}
+                  className={`px-2.5 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
                     statusFilter === 'SUSPENDED' 
                       ? 'bg-slate-700 text-slate-100 font-semibold' 
                       : 'text-slate-400 hover:text-slate-200'
@@ -348,6 +415,7 @@ export default function App() {
                 key={client.id}
                 client={client}
                 bcvRate={bcvData?.rate}
+                paymentConfig={paymentConfig}
                 onRegisterPayment={(c) => {
                   setClientForPayment(c);
                   setIsPaymentModalOpen(true);
@@ -358,6 +426,7 @@ export default function App() {
                 }}
                 onDeleteClient={(c) => setClientToDelete(c)}
                 onToggleSuspend={handleToggleSuspend}
+                onViewClientHistory={handleViewClientHistory}
               />
             ))}
           </div>
@@ -370,12 +439,27 @@ export default function App() {
         onClick={() => {
           setClientToEdit(null);
           setIsClientModalOpen(true);
+          triggerHaptic('light');
         }}
-        className="fixed bottom-6 right-6 sm:hidden z-40 w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl shadow-emerald-900/40 flex items-center justify-center active:scale-95 transition-transform"
+        className="fixed bottom-16 right-5 sm:hidden z-20 w-12 h-12 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl shadow-emerald-900/40 flex items-center justify-center active:scale-95 transition-transform"
         title="Registrar Comercio"
       >
-        <PlusCircle className="w-7 h-7" />
+        <PlusCircle className="w-6 h-6" />
       </button>
+
+      {/* Bottom Navigation for Mobile PWA */}
+      <BottomNav
+        statusFilter={statusFilter}
+        onSelectFilter={(f) => setStatusFilter(f)}
+        delinquentCount={delinquentCount}
+        upcomingCount={upcomingCount}
+        onOpenTransactions={() => {
+          setClientFilterForTransactions(null);
+          setIsTransactionsOpen(true);
+        }}
+        onOpenBcv={() => setIsBcvModalOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
 
       {/* Modals */}
       <ClientModal
@@ -398,6 +482,7 @@ export default function App() {
         onConfirm={handleConfirmPayment}
         client={clientForPayment}
         bcvRate={bcvData?.rate}
+        paymentConfig={paymentConfig}
       />
 
       <BcvModal
@@ -409,8 +494,39 @@ export default function App() {
 
       <TransactionsDrawer
         isOpen={isTransactionsOpen}
-        onClose={() => setIsTransactionsOpen(false)}
+        onClose={() => {
+          setIsTransactionsOpen(false);
+          setClientFilterForTransactions(null);
+        }}
         transactions={transactions}
+        clients={clients}
+        clientFilter={clientFilterForTransactions}
+        onClearClientFilter={() => setClientFilterForTransactions(null)}
+        onEditTransaction={(tx) => setTransactionToEdit(tx)}
+        onDeleteTransaction={(tx) => {
+          if (window.confirm(`¿Deseas eliminar el cobro de ${tx.nombre_negocio} por $${tx.monto_usd_base}?`)) {
+            handleDeleteTransaction(tx.id, tx.id_cliente);
+            triggerHaptic('heavy');
+          }
+        }}
+      />
+
+      {/* Transaction Edit Modal */}
+      <TransactionEditModal
+        isOpen={Boolean(transactionToEdit)}
+        onClose={() => setTransactionToEdit(null)}
+        transaction={transactionToEdit}
+        onSave={handleSaveTransaction}
+        onDelete={handleDeleteTransaction}
+      />
+
+      {/* Payment Settings & Backup Modal */}
+      <PaymentSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        config={paymentConfig}
+        onSave={handleSaveConfig}
+        onExportJson={handleExportJson}
       />
 
       {/* Soft Delete Confirmation Modal */}

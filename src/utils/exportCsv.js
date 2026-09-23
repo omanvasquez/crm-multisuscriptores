@@ -26,6 +26,8 @@ export function exportClientsToCSV(clients, bcvRate = 0) {
       estadoTexto = `En Prueba (${c.dias_restantes_prueba ?? 0}d restantes)`;
     } else if (c.estado_cliente === 'PRUEBA_VENCIDA') {
       estadoTexto = 'Prueba Vencida (Cobro 1er Mes)';
+    } else if (c.estado_cliente === 'POR_VENCER') {
+      estadoTexto = `Por Vencer (${c.dias_diferencia ?? 0}d restantes)`;
     } else if (c.estado_cliente === 'MOROSO' || !c.estado_pago) {
       estadoTexto = 'Moroso';
     }
@@ -74,7 +76,10 @@ export function exportTransactionsToCSV(transactions) {
     'Monto USD',
     'Tasa BCV Aplicada',
     'Monto VES Cobrado',
-    'Método de Pago'
+    'Método de Pago',
+    'Meses Pagados',
+    'Referencia',
+    'Nota'
   ];
 
   const rows = transactions.map(t => [
@@ -85,7 +90,10 @@ export function exportTransactionsToCSV(transactions) {
     t.monto_usd_base || 0,
     t.tasa_bcv_aplicada || 0,
     t.monto_ves_cobrado || 0,
-    `"${t.metodo_pago || 'Pago Móvil'}"`
+    `"${t.metodo_pago || 'Pago Móvil'}"`,
+    t.meses_pagados || 1,
+    `"${(t.referencia || '').replace(/"/g, '""')}"`,
+    `"${(t.nota || '').replace(/"/g, '""')}"`
   ]);
 
   const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -94,6 +102,31 @@ export function exportTransactionsToCSV(transactions) {
   const link = document.createElement('a');
   link.setAttribute('href', url);
   link.setAttribute('download', `transacciones_crm_${new Date().toISOString().slice(0,10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+/**
+ * Exports complete JSON backup of database
+ */
+export function exportFullBackupJSON(clients = [], transactions = [], paymentConfig = null) {
+  const backup = {
+    version: '1.0.0',
+    exportDate: new Date().toISOString(),
+    totalClientes: clients.length,
+    totalTransacciones: transactions.length,
+    pagoMovilConfig: paymentConfig,
+    clientes: clients,
+    transacciones: transactions
+  };
+
+  const jsonString = JSON.stringify(backup, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `backup_crm_multisuscriptores_${new Date().toISOString().slice(0,10)}.json`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

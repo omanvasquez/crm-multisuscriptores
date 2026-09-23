@@ -2,6 +2,9 @@
   "short_name": "CRM Cobranzas",
   "name": "CRM Multi-Suscripciones",
   "description": "Gestión y control de cobranza recurrente a comercios locales",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -27,7 +30,6 @@
       "sizes": "any"
     }
   ],
-  "start_url": "/",
   "background_color": "#090d16",
   "theme_color": "#10b981",
   "display": "standalone",

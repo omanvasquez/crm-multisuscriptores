@@ -4,10 +4,10 @@ import {
   TrendingUp, 
   LogOut, 
   ExternalLink, 
-  RefreshCw, 
   History, 
   PlusCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Settings
 } from 'lucide-react';
 
 export default function Navbar({ 
@@ -16,6 +16,7 @@ export default function Navbar({
   onOpenNewClientModal,
   onOpenTransactions,
   onExportClients,
+  onOpenSettings,
   clientsCount
 }) {
   const { currentUser, logout } = useAuth();
@@ -74,7 +75,7 @@ export default function Navbar({
             {/* View History */}
             <button
               onClick={onOpenTransactions}
-              title="Historial de Pagos"
+              title="Historial de Cobros"
               className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 transition-all"
             >
               <History className="w-4 h-4" />
@@ -89,13 +90,22 @@ export default function Navbar({
               <FileSpreadsheet className="w-4 h-4" />
             </button>
 
+            {/* Settings (Pago Móvil / Cuentas / Respaldo) */}
+            <button
+              onClick={onOpenSettings}
+              title="Ajustes de Cobro y Cuentas"
+              className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 transition-all"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+
             {/* Quick Add Button */}
             <button
               onClick={onOpenNewClientModal}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs shadow-md shadow-emerald-600/20 transition-all active:scale-95"
             >
               <PlusCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Nuevo Cliente</span>
+              <span className="hidden sm:inline">Nuevo Comercio</span>
             </button>
 
             {/* User Profile / Logout */}
