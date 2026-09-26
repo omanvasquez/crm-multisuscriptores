@@ -3,6 +3,8 @@ import {
   signInWithPopup, 
   signInWithRedirect,
   getRedirectResult,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut, 
   onAuthStateChanged 
 } from 'firebase/auth';
@@ -107,6 +109,63 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const loginWithEmail = async (email, password) => {
+    setAuthError(null);
+    if (!email || !password) {
+      setAuthError('Por favor ingresa tu correo y contraseña.');
+      return false;
+    }
+
+    if (!isAuthorizedEmail(email)) {
+      setAuthError(`Acceso denegado. La cuenta ${email} no está autorizada.`);
+      return false;
+    }
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (!isAuthorizedEmail(userCredential.user?.email)) {
+        await signOut(auth);
+        setAuthError(`Acceso denegado. La cuenta ${userCredential.user?.email || ''} no está autorizada.`);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Email sign-in error:', error);
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        setAuthError('Correo o contraseña incorrectos.');
+      } else if (error.code === 'auth/too-many-requests') {
+        setAuthError('Demasiados intentos fallidos. Por favor espera un momento o restablece tu contraseña.');
+      } else if (error.code === 'auth/network-request-failed') {
+        setAuthError('Error de red. Revisa tu conexión a internet.');
+      } else {
+        setAuthError(error.message || 'Error al iniciar sesión.');
+      }
+      return false;
+    }
+  };
+
+  const sendResetPassword = async (email) => {
+    setAuthError(null);
+    const targetEmail = (email || 'omanjrvasquez@gmail.com').trim();
+    if (!isAuthorizedEmail(targetEmail)) {
+      setAuthError(`El correo ${targetEmail} no está autorizado en este sistema.`);
+      return false;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, targetEmail);
+      return true;
+    } catch (error) {
+      console.error('Send reset password error:', error);
+      if (error.code === 'auth/user-not-found') {
+        setAuthError('No existe una cuenta registrada con este correo.');
+      } else {
+        setAuthError(error.message || 'Error al enviar enlace de restablecimiento.');
+      }
+      return false;
+    }
+  };
+
   const logout = () => {
     return signOut(auth);
   };
@@ -117,6 +176,8 @@ export function AuthProvider({ children }) {
     loading,
     authError,
     setAuthError,
+    loginWithEmail,
+    sendResetPassword,
     loginWithGoogle,
     loginWithGoogleRedirect: () => loginWithGoogle(true),
     logout
