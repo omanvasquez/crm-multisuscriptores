@@ -108,6 +108,24 @@ export function generateReceiptText({
   const usdFmt = Number(montoUsd || 0).toFixed(2);
   const fechaFmt = fechaPago || new Date().toLocaleDateString('es-VE');
 
+  const isFreeReferral = Number(montoUsd || 0) === 0 || String(metodoPago || '').includes('Referido');
+
+  if (isFreeReferral) {
+    return `🧾 *COMPROBANTE DE BONIFICACIÓN*
+*Folio:* #${folio}
+━━━━━━━━━━━━━━━━━━━━━━━
+🏢 *Comercio:* ${nombreNegocio || 'Cliente'}
+💻 *Software:* ${appSuscrita || 'General'}
+${idExterno ? `🆔 *ID App:* ${idExterno}\n` : ''}━━━━━━━━━━━━━━━━━━━━━━━
+🎁 *Beneficio:* 1 Mes Gratis por Recomendación ($0.00 USD)
+📅 *Fecha de Aplicación:* ${fechaFmt}
+🗓️ *Válido hasta:* ${validoHasta || 'Próximo corte'}
+${nota ? `📝 *Detalle:* ${nota}\n` : ''}━━━━━━━━━━━━━━━━━━━━━━━
+✅ *Estado del Servicio:* Solvente y Activo
+
+¡Muchas gracias por recomendarnos y apoyar nuestro crecimiento! 🤝🏻`;
+  }
+
   return `🧾 *COMPROBANTE DE COBRANZA*
 *Folio:* #${folio}
 ━━━━━━━━━━━━━━━━━━━━━━━

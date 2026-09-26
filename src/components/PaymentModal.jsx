@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -7,12 +7,15 @@ import {
   Calendar, 
   MessageCircle, 
   Copy, 
-  Check
+  Check,
+  Gift,
+  Tag
 } from 'lucide-react';
 import { generateReceiptWhatsAppLink, generateReceiptText } from '../utils/phone';
 import { triggerHaptic } from '../utils/haptics';
 
 export default function PaymentModal({ isOpen, onClose, onConfirm, client, bcvRate, paymentConfig }) {
+  const [selectedPlan, setSelectedPlan] = useState('1m');
   const [metodoPago, setMetodoPago] = useState('Pago Móvil');
   const [meses, setMeses] = useState(1);
   const [customUsd, setCustomUsd] = useState('');
@@ -26,12 +29,68 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, client, bcvRa
   const [completedPayment, setCompletedPayment] = useState(null);
   const [copiedReceipt, setCopiedReceipt] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPlan('1m');
+      setMeses(1);
+      setCustomUsd('');
+      setReferencia('');
+      setNota('');
+      setError(null);
+      setMetodoPago('Pago Móvil');
+      setCompletedPayment(null);
+    }
+  }, [isOpen, client?.id]);
+
   if (!isOpen || !client) return null;
 
   const tarifaBase = Number(client.tarifa_base_usd || 0);
-  const montoUsd = customUsd !== '' ? Number(customUsd) : (tarifaBase * meses);
+
+  let montoUsd = 0;
+  if (customUsd !== '') {
+    montoUsd = Number(customUsd);
+  } else if (selectedPlan === '3m_promo') {
+    montoUsd = 10;
+  } else if (selectedPlan === '6m_promo') {
+    montoUsd = 20;
+  } else if (selectedPlan === '12m_promo') {
+    montoUsd = 40;
+  } else if (selectedPlan === 'referral_free') {
+    montoUsd = 0;
+  } else {
+    montoUsd = tarifaBase * meses;
+  }
+
   const tasaBcv = Number(bcvRate || 0);
   const montoVes = montoUsd * tasaBcv;
+
+  const handleSelectPlan = (planId) => {
+    setSelectedPlan(planId);
+    setCustomUsd('');
+    triggerHaptic('light');
+
+    if (planId === '1m') {
+      setMeses(1);
+      if (metodoPago === 'Bonificación / Referido') setMetodoPago('Pago Móvil');
+      if (nota.startsWith('Promo') || nota.startsWith('Mes gratis')) setNota('');
+    } else if (planId === '3m_promo') {
+      setMeses(3);
+      if (metodoPago === 'Bonificación / Referido') setMetodoPago('Pago Móvil');
+      if (!nota || nota.startsWith('Promo') || nota.startsWith('Mes gratis')) setNota('Promo 3 meses x $10');
+    } else if (planId === '6m_promo') {
+      setMeses(6);
+      if (metodoPago === 'Bonificación / Referido') setMetodoPago('Pago Móvil');
+      if (!nota || nota.startsWith('Promo') || nota.startsWith('Mes gratis')) setNota('Promo 6 meses x $20');
+    } else if (planId === '12m_promo') {
+      setMeses(12);
+      if (metodoPago === 'Bonificación / Referido') setMetodoPago('Pago Móvil');
+      if (!nota || nota.startsWith('Promo') || nota.startsWith('Mes gratis')) setNota('Promo 1 año x $40');
+    } else if (planId === 'referral_free') {
+      setMeses(1);
+      setMetodoPago('Bonificación / Referido');
+      if (!nota || nota.startsWith('Promo') || nota.startsWith('Mes gratis')) setNota('Mes gratis por recomendación de cliente');
+    }
+  };
 
   // Next calculated date: +meses
   const currentDueDate = client.fecha_proximo_pago?.toDate 
@@ -94,6 +153,7 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, client, bcvRa
 
   const handleCloseAll = () => {
     setCompletedPayment(null);
+    setSelectedPlan('1m');
     setCustomUsd('');
     setMeses(1);
     setReferencia('');
@@ -115,7 +175,7 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, client, bcvRa
           </div>
 
           <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-            ¡Cobranza Registrada!
+            {completedPayment.montoUsd === 0 ? '¡Mes Gratis Aplicado!' : '¡Cobranza Registrada!'}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Se renovó la suscripción de <strong className="text-slate-800 dark:text-slate-200">{client.nombre_negocio}</strong> hasta el <strong className="text-emerald-600 dark:text-emerald-400">{completedPayment.validoHasta}</strong>.
@@ -125,20 +185,31 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, client, bcvRa
           <div className="mt-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-left text-xs font-mono space-y-1 text-slate-700 dark:text-slate-300">
             <div className="flex justify-between font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800/80 pb-1.5 mb-2">
               <span>RECIBO #{completedPayment.transactionId.slice(-6).toUpperCase()}</span>
-              <span className="text-emerald-600 dark:text-emerald-400">PAGADO</span>
+              <span className="text-emerald-600 dark:text-emerald-400">
+                {completedPayment.montoUsd === 0 ? 'BONIFICADO' : 'PAGADO'}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Monto USD:</span>
-              <span>${completedPayment.montoUsd.toFixed(2)} ({completedPayment.mesesPagados} mes{completedPayment.mesesPagados > 1 ? 'es' : ''})</span>
+              <span>
+                {completedPayment.montoUsd === 0 
+                  ? '$0.00 (Mes Gratis por Referido)' 
+                  : `$${completedPayment.montoUsd.toFixed(2)} (${completedPayment.mesesPagados} mes${completedPayment.mesesPagados > 1 ? 'es' : ''})`
+                }
+              </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Tasa BCV:</span>
-              <span>{completedPayment.tasaBcv.toFixed(2)} Bs/$</span>
-            </div>
-            <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 pt-1">
-              <span>Total en Bs:</span>
-              <span>{completedPayment.montoVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })} Bs</span>
-            </div>
+            {completedPayment.montoUsd > 0 && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Tasa BCV:</span>
+                  <span>{completedPayment.tasaBcv.toFixed(2)} Bs/$</span>
+                </div>
+                <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 pt-1">
+                  <span>Total en Bs:</span>
+                  <span>{completedPayment.montoVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })} Bs</span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between text-[11px] text-slate-500 pt-1">
               <span>Método:</span>
               <span>{completedPayment.metodoPago}</span>
@@ -226,61 +297,112 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, client, bcvRa
           </div>
         )}
 
-        {/* Multi-Month Selector */}
+        {/* Selector de Planes y Promociones */}
         <div className="mt-5">
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
-            <span>Periodo a Cobrar:</span>
+            <span>Planes y Promociones:</span>
             <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-normal">
-              Tarifa: ${tarifaBase.toFixed(2)} USD/mes
+              Tarifa base: ${tarifaBase.toFixed(2)} USD/mes
             </span>
           </label>
-          <div className="grid grid-cols-4 gap-1.5">
-            {[1, 2, 3, 6].map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => {
-                  setMeses(m);
-                  setCustomUsd('');
-                  triggerHaptic('light');
-                }}
-                className={`py-2 px-2 rounded-xl text-xs font-medium border transition-all text-center ${
-                  meses === m && customUsd === ''
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold'
-                    : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
-              >
-                {m} {m === 1 ? 'Mes' : 'Meses'}
-              </button>
-            ))}
-          </div>
 
-          <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            {/* 1 Mes Regular */}
             <button
               type="button"
-              onClick={() => {
-                setMeses(12);
-                setCustomUsd('');
-                triggerHaptic('light');
-              }}
-              className={`py-1.5 px-3 rounded-xl text-xs font-medium border transition-all text-center ${
-                meses === 12 && customUsd === ''
-                  ? 'bg-emerald-500/20 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold'
+              onClick={() => handleSelectPlan('1m')}
+              className={`p-2.5 rounded-xl text-xs border transition-all text-center flex flex-col items-center justify-center ${
+                selectedPlan === '1m' && customUsd === ''
+                  ? 'bg-emerald-500/20 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold shadow-sm'
                   : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
-              1 Año Completo (12 meses)
+              <span className="font-semibold text-xs">1 Mes</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">${tarifaBase.toFixed(2)} USD</span>
             </button>
-            
-            {/* Monto personalizado */}
+
+            {/* Promo 3 Meses */}
+            <button
+              type="button"
+              onClick={() => handleSelectPlan('3m_promo')}
+              className={`p-2 rounded-xl text-xs border transition-all text-center flex flex-col items-center justify-center relative overflow-hidden ${
+                selectedPlan === '3m_promo' && customUsd === ''
+                  ? 'bg-emerald-500/20 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold shadow-sm ring-1 ring-emerald-500/50'
+                  : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+              }`}
+            >
+              <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 mb-0.5">
+                Promo
+              </span>
+              <span className="font-semibold text-xs">3 Meses</span>
+              <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 mt-0.5">$10 USD</span>
+            </button>
+
+            {/* Promo 6 Meses */}
+            <button
+              type="button"
+              onClick={() => handleSelectPlan('6m_promo')}
+              className={`p-2 rounded-xl text-xs border transition-all text-center flex flex-col items-center justify-center relative overflow-hidden ${
+                selectedPlan === '6m_promo' && customUsd === ''
+                  ? 'bg-emerald-500/20 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold shadow-sm ring-1 ring-emerald-500/50'
+                  : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+              }`}
+            >
+              <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 mb-0.5">
+                Promo
+              </span>
+              <span className="font-semibold text-xs">6 Meses</span>
+              <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 mt-0.5">$20 USD</span>
+            </button>
+
+            {/* Promo 1 Año */}
+            <button
+              type="button"
+              onClick={() => handleSelectPlan('12m_promo')}
+              className={`p-2 rounded-xl text-xs border transition-all text-center flex flex-col items-center justify-center relative overflow-hidden ${
+                selectedPlan === '12m_promo' && customUsd === ''
+                  ? 'bg-emerald-500/20 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold shadow-sm ring-1 ring-emerald-500/50'
+                  : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+              }`}
+            >
+              <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 mb-0.5">
+                1 Año
+              </span>
+              <span className="font-semibold text-xs">12 Meses</span>
+              <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 mt-0.5">$40 USD</span>
+            </button>
+          </div>
+
+          {/* Opción Mes Gratis por Referido y Monto Personalizado */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2">
+            <button
+              type="button"
+              onClick={() => handleSelectPlan('referral_free')}
+              className={`py-2 px-3 rounded-xl text-xs font-medium border transition-all text-center flex items-center justify-center gap-1.5 ${
+                selectedPlan === 'referral_free' && customUsd === ''
+                  ? 'bg-purple-500/20 border-purple-500 text-purple-700 dark:text-purple-300 font-bold shadow-sm ring-1 ring-purple-500/50'
+                  : 'bg-purple-500/5 dark:bg-purple-950/30 border-purple-300/40 dark:border-purple-800/40 text-purple-700 dark:text-purple-300 hover:border-purple-400'
+              }`}
+            >
+              <span>🎁</span>
+              <span className="font-semibold">1 Mes Gratis por Referido</span>
+              <span className="text-[10px] opacity-80">($0)</span>
+            </button>
+
+            {/* Input monto personalizado */}
             <div className="relative">
               <input
                 type="number"
                 step="0.01"
                 placeholder="Monto $ personalizado"
                 value={customUsd}
-                onChange={(e) => setCustomUsd(e.target.value)}
-                className="w-full py-1.5 px-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                onChange={(e) => {
+                  setCustomUsd(e.target.value);
+                  setSelectedPlan('custom');
+                }}
+                className={`w-full py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors ${
+                  customUsd !== '' ? 'border-emerald-500 ring-1 ring-emerald-500/50' : 'border-slate-200 dark:border-slate-800'
+                }`}
               />
             </div>
           </div>
@@ -292,23 +414,36 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, client, bcvRa
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
             <span>Monto total USD:</span>
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              ${montoUsd.toFixed(2)} USD {meses > 1 ? `(${meses} meses)` : ''}
+              {montoUsd === 0 
+                ? '$0.00 (Mes Gratis Bonificado)'
+                : `$${montoUsd.toFixed(2)} USD (${meses} mes${meses > 1 ? 'es' : ''})`
+              }
             </span>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>Tasa oficial BCV aplicada:</span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-              {tasaBcv.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/$
-            </span>
-          </div>
+          {montoUsd > 0 ? (
+            <>
+              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <span>Tasa oficial BCV aplicada:</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  {tasaBcv.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/$
+                </span>
+              </div>
 
-          <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Total Cobrado en Bs:</span>
-            <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-              {montoVes.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs
-            </span>
-          </div>
+              <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Total Cobrado en Bs:</span>
+                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                  {montoVes.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-center">
+              <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+                ✨ Bonificación sin costo para el cliente ($0 Bs)
+              </span>
+            </div>
+          )}
 
         </div>
 
@@ -317,17 +452,18 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, client, bcvRa
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
             Método de Pago Utilizado:
           </label>
-          <div className="grid grid-cols-2 gap-2">
-            {['Pago Móvil', 'Efectivo USD', 'Efectivo VES', 'Transferencia'].map((metodo) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {['Pago Móvil', 'Efectivo USD', 'Efectivo VES', 'Transferencia', 'Bonificación / Referido'].map((metodo) => (
               <button
                 key={metodo}
                 type="button"
                 onClick={() => { setMetodoPago(metodo); triggerHaptic('light'); }}
-                className={`py-2 px-3 rounded-xl text-xs font-medium border transition-all text-center ${
+                className={`py-2 px-2.5 rounded-xl text-xs font-medium border transition-all text-center truncate ${
                   metodoPago === metodo
                     ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-semibold'
                     : 'bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
+                title={metodo}
               >
                 {metodo}
               </button>
