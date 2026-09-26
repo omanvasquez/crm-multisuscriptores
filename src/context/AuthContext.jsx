@@ -29,6 +29,7 @@ export function AuthProvider({ children }) {
       .catch((error) => {
         if (error.code !== 'auth/credential-already-in-use') {
           console.warn('Redirect auth result warning:', error.message);
+          setAuthError(error.message || 'Error al completar inicio de sesión con Google.');
         }
       });
 

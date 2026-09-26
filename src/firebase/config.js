@@ -12,22 +12,9 @@ import {
   GoogleAuthProvider 
 } from 'firebase/auth';
 
-const resolveAuthDomain = () => {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    if (host === 'crm-multisuscriptores.web.app') {
-      return 'crm-multisuscriptores.web.app';
-    }
-    if (host === 'crm-multisuscriptores.firebaseapp.com') {
-      return 'crm-multisuscriptores.firebaseapp.com';
-    }
-  }
-  return import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'crm-multisuscriptores.web.app';
-};
-
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: resolveAuthDomain(),
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'crm-multisuscriptores.firebaseapp.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,

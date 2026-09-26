@@ -1,4 +1,4 @@
-const CACHE_NAME = 'crm-multisuscriptores-v7';
+const CACHE_NAME = 'crm-multisuscriptores-v8';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -37,6 +37,9 @@ self.addEventListener('fetch', (event) => {
 
   // Ignore cross-origin API calls (Firebase Firestore, DolarAPI, Google Auth, etc.)
   if (url.origin !== location.origin) return;
+
+  // Ignore Firebase reserved endpoints (/__/*)
+  if (url.pathname.startsWith('/__/')) return;
 
   // 1. Navigation requests (HTML documents): NETWORK FIRST
   // Guarantees mobile PWA gets the latest index.html with new asset hashes on deploy.
