@@ -4,13 +4,9 @@ import {
   AlertCircle, 
   Clock, 
   History, 
-  TrendingUp, 
   Settings,
-  Sun,
-  Moon,
   CalendarCheck
 } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
 import { triggerHaptic } from '../utils/haptics';
 
 export default function BottomNav({
@@ -23,7 +19,6 @@ export default function BottomNav({
   onOpenBcv,
   onOpenSettings
 }) {
-  const { isDark, toggleTheme } = useTheme();
 
   return (
     <nav className="fixed bottom-0 inset-x-0 sm:hidden z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around shadow-2xl safe-area-pb transition-colors duration-150">
@@ -130,35 +125,7 @@ export default function BottomNav({
         <span className="text-[10px]">Cobros</span>
       </button>
 
-      {/* 5. Tasa BCV */}
-      <button
-        type="button"
-        onClick={() => {
-          onOpenBcv();
-          triggerHaptic('light');
-        }}
-        className="flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors"
-      >
-        <TrendingUp className="w-4 h-4" />
-        <span className="text-[10px]">Tasa BCV</span>
-      </button>
-
-      {/* 6. Theme Toggle (Móvil) */}
-      <button
-        type="button"
-        onClick={toggleTheme}
-        className="flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-slate-500 hover:text-amber-500 dark:text-slate-400 dark:hover:text-amber-400 transition-colors"
-        title={isDark ? "Cambiar a Modo Claro" : "Cambiar a Modo Oscuro"}
-      >
-        {isDark ? (
-          <Sun className="w-4 h-4 text-amber-400" />
-        ) : (
-          <Moon className="w-4 h-4 text-indigo-600" />
-        )}
-        <span className="text-[10px]">{isDark ? 'Claro' : 'Oscuro'}</span>
-      </button>
-
-      {/* 7. Ajustes */}
+      {/* 5. Ajustes */}
       <button
         type="button"
         onClick={() => {
