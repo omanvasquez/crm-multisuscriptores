@@ -12,9 +12,22 @@ import {
   GoogleAuthProvider 
 } from 'firebase/auth';
 
+const resolveAuthDomain = () => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'crm-multisuscriptores.web.app') {
+      return 'crm-multisuscriptores.web.app';
+    }
+    if (host === 'crm-multisuscriptores.firebaseapp.com') {
+      return 'crm-multisuscriptores.firebaseapp.com';
+    }
+  }
+  return import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'crm-multisuscriptores.web.app';
+};
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  authDomain: resolveAuthDomain(),
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
@@ -40,4 +53,15 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-export const AUTHORIZED_EMAIL = 'omanjrvasquez@gmail.com';
+export const AUTHORIZED_EMAILS = [
+  'omanjrvasquez@gmail.com',
+  'omanpago@gmail.com'
+];
+
+export const isAuthorizedEmail = (email) => {
+  if (!email || typeof email !== 'string') return false;
+  const cleanEmail = email.trim().toLowerCase();
+  return AUTHORIZED_EMAILS.some(allowed => allowed.toLowerCase() === cleanEmail);
+};
+
+export const AUTHORIZED_EMAIL = AUTHORIZED_EMAILS[0];

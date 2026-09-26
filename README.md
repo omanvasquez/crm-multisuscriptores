@@ -278,7 +278,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
-      allow read, write: if request.auth != null && request.auth.token.email == "omanjrvasquez@gmail.com";
+      allow read, write: if request.auth != null && 
+        request.auth.token.email in ["omanjrvasquez@gmail.com", "omanpago@gmail.com"];
     }
   }
 }

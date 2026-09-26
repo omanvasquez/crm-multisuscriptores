@@ -80,7 +80,7 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
       setFormData({
         id_externo: '',
         nombre_negocio: '',
-        app_suscrita: existingApps[0] || 'BodegasPro',
+        app_suscrita: 'ComercioPro',
         encargado: '',
         cedula: '',
         telefono: '',
@@ -201,13 +201,14 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit, exi
                   type="text"
                   required
                   list="apps-list"
-                  placeholder="Ej. BodegasPro, GymControl"
+                  placeholder="Ej. ComercioPro, BodegasPro, GymControl"
                   value={formData.app_suscrita}
                   onChange={(e) => setFormData({ ...formData, app_suscrita: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 />
                 <datalist id="apps-list">
-                  {existingApps.map((app) => (
+                  <option value="ComercioPro" />
+                  {existingApps.filter(app => app !== 'ComercioPro').map((app) => (
                     <option key={app} value={app} />
                   ))}
                   <option value="BodegasPro" />

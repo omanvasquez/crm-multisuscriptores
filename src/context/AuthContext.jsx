@@ -6,7 +6,7 @@ import {
   signOut, 
   onAuthStateChanged 
 } from 'firebase/auth';
-import { auth, googleProvider, AUTHORIZED_EMAIL } from '../firebase/config';
+import { auth, googleProvider, isAuthorizedEmail, AUTHORIZED_EMAILS } from '../firebase/config';
 
 const AuthContext = createContext();
 
@@ -20,9 +20,9 @@ export function AuthProvider({ children }) {
     getRedirectResult(auth)
       .then((result) => {
         if (result?.user) {
-          if (result.user.email.toLowerCase() !== AUTHORIZED_EMAIL.toLowerCase()) {
+          if (!isAuthorizedEmail(result.user.email)) {
             signOut(auth);
-            setAuthError(`Acceso denegado. Solo ${AUTHORIZED_EMAIL} tiene acceso a este CRM.`);
+            setAuthError(`Acceso denegado. La cuenta ${result.user.email} no está autorizada.`);
           }
         }
       })
@@ -34,7 +34,7 @@ export function AuthProvider({ children }) {
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        if (user.email.toLowerCase() === AUTHORIZED_EMAIL.toLowerCase()) {
+        if (isAuthorizedEmail(user.email)) {
           setCurrentUser(user);
           setAuthError(null);
         } else {
@@ -52,44 +52,56 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (forceRedirect = false) => {
     setAuthError(null);
     const isStandalone = 
       typeof window !== 'undefined' && 
       (window.matchMedia('(display-mode: standalone)').matches || Boolean(window.navigator.standalone));
 
-    try {
-      if (isStandalone) {
-        // Mobile standalone PWAs frequently block popups; use redirect instead
+    if (isStandalone || forceRedirect) {
+      try {
         await signInWithRedirect(auth, googleProvider);
         return true;
+      } catch (redirError) {
+        console.error('Redirect sign-in error:', redirError);
+        setAuthError(redirError.message);
+        return false;
       }
+    }
 
+    try {
       const result = await signInWithPopup(auth, googleProvider);
-      if (result.user.email.toLowerCase() !== AUTHORIZED_EMAIL.toLowerCase()) {
+      if (!isAuthorizedEmail(result.user?.email)) {
         await signOut(auth);
-        setAuthError(`Acceso restringido. Solo ${AUTHORIZED_EMAIL} tiene acceso a este CRM.`);
+        setAuthError(`Acceso restringido. La cuenta ${result.user?.email || ''} no está autorizada.`);
         return false;
       }
       return true;
     } catch (error) {
-      console.warn('Popup login failed, attempting redirect fallback:', error);
-      if (
-        error.code === 'auth/popup-blocked' || 
-        error.code === 'auth/cancelled-popup-request' ||
-        error.code === 'auth/popup-closed-by-user' ||
-        isStandalone
-      ) {
+      console.warn('Popup login attempt:', error);
+      
+      // Si el usuario simplemente cerró la ventana emergente de Google, no mostrar un error alarmante
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        return false;
+      }
+
+      // Si la ventana emergente fue bloqueada en el móvil, intentar redirección o avisar amigablemente
+      if (error.code === 'auth/popup-blocked') {
         try {
           await signInWithRedirect(auth, googleProvider);
           return true;
         } catch (redirError) {
-          console.error('Redirect sign-in error:', redirError);
-          setAuthError(redirError.message);
+          console.error('Redirect sign-in error after popup blocked:', redirError);
+          setAuthError('La ventana emergente fue bloqueada. Usa el botón "Entrar por pantalla completa".');
           return false;
         }
       }
-      setAuthError(error.message);
+
+      if (error.code === 'auth/network-request-failed') {
+        setAuthError('Error de conexión a internet. Revisa tu señal e intenta nuevamente.');
+      } else {
+        setAuthError(error.message || 'Error al autenticar con Google.');
+      }
       return false;
     }
   };
@@ -100,11 +112,12 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
-    isAdmin: currentUser?.email?.toLowerCase() === AUTHORIZED_EMAIL.toLowerCase(),
+    isAdmin: isAuthorizedEmail(currentUser?.email),
     loading,
     authError,
     setAuthError,
     loginWithGoogle,
+    loginWithGoogleRedirect: () => loginWithGoogle(true),
     logout
   };
 

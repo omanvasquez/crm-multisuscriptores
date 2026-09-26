@@ -7,7 +7,8 @@ import {
   TrendingUp, 
   Settings,
   Sun,
-  Moon
+  Moon,
+  CalendarCheck
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { triggerHaptic } from '../utils/haptics';
@@ -17,6 +18,7 @@ export default function BottomNav({
   onSelectFilter,
   delinquentCount = 0,
   upcomingCount = 0,
+  todayCount = 0,
   onOpenTransactions,
   onOpenBcv,
   onOpenSettings
@@ -33,7 +35,7 @@ export default function BottomNav({
           onSelectFilter('ALL');
           triggerHaptic('light');
         }}
-        className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-colors ${
+        className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-xl transition-colors ${
           statusFilter === 'ALL'
             ? 'text-emerald-600 dark:text-emerald-400 font-bold'
             : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -41,6 +43,30 @@ export default function BottomNav({
       >
         <Building2 className="w-4 h-4" />
         <span className="text-[10px]">Cartera</span>
+      </button>
+
+      {/* 2. Cobros de Hoy */}
+      <button
+        type="button"
+        onClick={() => {
+          onSelectFilter('TODAY');
+          triggerHaptic('light');
+        }}
+        className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-xl relative transition-colors ${
+          statusFilter === 'TODAY'
+            ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+        }`}
+      >
+        <div className="relative">
+          <CalendarCheck className="w-4 h-4" />
+          {todayCount > 0 && (
+            <span className="absolute -top-1 -right-2 w-3.5 h-3.5 bg-emerald-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center animate-pulse">
+              {todayCount > 99 ? '99+' : todayCount}
+            </span>
+          )}
+        </div>
+        <span className="text-[10px]">Hoy</span>
       </button>
 
       {/* 2. Morosos */}

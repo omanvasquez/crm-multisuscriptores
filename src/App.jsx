@@ -27,6 +27,13 @@ import {
   toggleSuspendClient
 } from './services/clientService';
 import { getBcvRate } from './services/bcvService';
+import { 
+  getNotificationPermission, 
+  requestNotificationPermission, 
+  sendDueTodayNotification, 
+  checkDailyDueCobros,
+  getClientsDueToday
+} from './services/notificationService';
 import { exportClientsToCSV, exportFullBackupJSON } from './utils/exportCsv';
 import { triggerHaptic } from './utils/haptics';
 
@@ -47,11 +54,12 @@ export default function App() {
   const [bcvData, setBcvData] = useState(null);
   const [paymentConfig, setPaymentConfig] = useState(null);
   const [loadingClients, setLoadingClients] = useState(true);
+  const [notificationPermission, setNotificationPermission] = useState(() => getNotificationPermission());
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedApp, setSelectedApp] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, SOLVENT, UPCOMING, TRIAL, DELINQUENT, SUSPENDED
+  const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, TODAY, SOLVENT, UPCOMING, TRIAL, DELINQUENT, SUSPENDED
 
   // Modals state
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
@@ -116,6 +124,12 @@ export default function App() {
   }, [clients]);
 
   // Counts for filters and badges
+  const clientsDueToday = useMemo(() => {
+    return getClientsDueToday(clients);
+  }, [clients]);
+
+  const todayCount = clientsDueToday.length;
+
   const suspendedCount = useMemo(() => {
     return clients.filter(c => c.suspendido).length;
   }, [clients]);
@@ -127,6 +141,45 @@ export default function App() {
   const upcomingCount = useMemo(() => {
     return clients.filter(c => !c.suspendido && c.estado_cliente === 'POR_VENCER').length;
   }, [clients]);
+
+  // Verificación diaria automática de cobros (emite alerta una vez al día al admin)
+  useEffect(() => {
+    if (!loadingClients && clients.length > 0 && bcvData) {
+      checkDailyDueCobros(clients, bcvData.rate);
+    }
+  }, [clients, bcvData, loadingClients]);
+
+  // Manejo de clic en notificación externa / URL params / mensajes del Service Worker
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('statusFilter') === 'TODAY') {
+      setStatusFilter('TODAY');
+    }
+
+    const handleSwMessage = (e) => {
+      if (e.data && e.data.type === 'SET_STATUS_FILTER') {
+        setStatusFilter(e.data.filter);
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleSwMessage);
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleSwMessage);
+    };
+  }, []);
+
+  const handleNotificationBellClick = async () => {
+    triggerHaptic('light');
+    if (notificationPermission !== 'granted') {
+      const perm = await requestNotificationPermission();
+      setNotificationPermission(perm);
+      if (perm === 'granted') {
+        await sendDueTodayNotification(clients, bcvData?.rate, true);
+      }
+    } else {
+      await sendDueTodayNotification(clients, bcvData?.rate, true);
+    }
+  };
 
   // Filter clients based on search query, selected app, and payment status
   const filteredClients = useMemo(() => {
@@ -158,6 +211,13 @@ export default function App() {
       // If NOT on SUSPENDED tab, hide suspended clients so they do not clutter active lists
       if (isSuspended) {
         return false;
+      }
+
+      // Filtro especial para cobros de HOY
+      if (statusFilter === 'TODAY') {
+        const isToday = (c.en_periodo_prueba && c.dias_restantes_prueba === 0) || (!c.en_periodo_prueba && c.dias_diferencia === 0);
+        if (!isToday) return false;
+        return true;
       }
 
       const estado = c.estado_cliente || (c.estado_pago ? 'SOLVENTE' : 'MOROSO');
@@ -262,6 +322,9 @@ export default function App() {
         onExportClients={() => exportClientsToCSV(clients, bcvData?.rate)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         clientsCount={clients.length}
+        notificationPermission={notificationPermission}
+        onNotificationClick={handleNotificationBellClick}
+        todayCobrosCount={todayCount}
       />
 
       {/* Main Content (with bottom padding for mobile BottomNav) */}
@@ -318,6 +381,17 @@ export default function App() {
                   }`}
                 >
                   Todos
+                </button>
+                <button
+                  onClick={() => { setStatusFilter('TODAY'); triggerHaptic('light'); }}
+                  className={`px-2.5 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                    statusFilter === 'TODAY' 
+                      ? 'bg-emerald-600 text-white font-bold shadow-sm' 
+                      : 'text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${todayCount > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`}></span>
+                  Vencen Hoy {todayCount > 0 ? `(${todayCount})` : ''}
                 </button>
                 <button
                   onClick={() => { setStatusFilter('SOLVENT'); triggerHaptic('light'); }}
@@ -450,6 +524,7 @@ export default function App() {
       <BottomNav
         statusFilter={statusFilter}
         onSelectFilter={(f) => setStatusFilter(f)}
+        todayCount={todayCount}
         delinquentCount={delinquentCount}
         upcomingCount={upcomingCount}
         onOpenTransactions={() => {

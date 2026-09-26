@@ -1,4 +1,4 @@
-const CACHE_NAME = 'crm-multisuscriptores-v4';
+const CACHE_NAME = 'crm-multisuscriptores-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -97,3 +97,23 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// Handle notification click: focus app window or open it with TODAY filter
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          client.postMessage({ type: 'SET_STATUS_FILTER', filter: 'TODAY' });
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow('/?statusFilter=TODAY');
+      }
+    })
+  );
+});
+

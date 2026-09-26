@@ -6,21 +6,27 @@ import {
   LogOut, 
   ExternalLink, 
   History, 
-  PlusCircle,
-  FileSpreadsheet,
-  Settings,
-  Sun,
-  Moon
+  PlusCircle, 
+  FileSpreadsheet, 
+  Settings, 
+  Sun, 
+  Moon,
+  Bell,
+  BellRing,
+  BellOff
 } from 'lucide-react';
 
 export default function Navbar({ 
   bcvData, 
   onOpenBcvModal, 
-  onOpenNewClientModal,
-  onOpenTransactions,
-  onExportClients,
-  onOpenSettings,
-  clientsCount
+  onOpenNewClientModal, 
+  onOpenTransactions, 
+  onExportClients, 
+  onOpenSettings, 
+  clientsCount,
+  notificationPermission,
+  onNotificationClick,
+  todayCobrosCount = 0
 }) {
   const { currentUser, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
@@ -73,6 +79,44 @@ export default function Navbar({
                 <Moon className="w-4 h-4 text-indigo-600 animate-in zoom-in duration-200" />
               )}
             </button>
+
+            {/* Notification Bell (Alertas de Cobro en Dispositivo) */}
+            {onNotificationClick && (
+              <button
+                onClick={onNotificationClick}
+                title={
+                  notificationPermission === 'granted'
+                    ? `Notificaciones del sistema activadas${todayCobrosCount > 0 ? ` • ${todayCobrosCount} cobros para hoy (clic para enviar alerta de prueba)` : ' • Sin cobros hoy (clic para probar)'}`
+                    : notificationPermission === 'denied'
+                    ? 'Notificaciones bloqueadas por el navegador'
+                    : 'Activar Alertas de Cobro en este dispositivo'
+                }
+                className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 transition-all"
+              >
+                {notificationPermission === 'denied' ? (
+                  <BellOff className="w-4 h-4 text-slate-400" />
+                ) : todayCobrosCount > 0 ? (
+                  <BellRing className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <Bell className="w-4 h-4" />
+                )}
+
+                {/* Badge con número de cobros de hoy */}
+                {todayCobrosCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-600 text-[9px] font-bold text-white items-center justify-center">
+                      {todayCobrosCount > 99 ? '99+' : todayCobrosCount}
+                    </span>
+                  </span>
+                )}
+
+                {/* Punto amarillo si aún no ha activado los permisos */}
+                {notificationPermission === 'default' && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                )}
+              </button>
+            )}
 
             {/* BCV Rate Pill */}
             <button
